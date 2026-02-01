@@ -128,6 +128,9 @@ function App() {
     }
   };
 
+  // Tính tổng số câu đúng từ listening và mega scores
+  const totalCorrectCount = listeningCorrect + megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.error + megaScores.match;
+
   const totalScore = calculateTotalScore();
   const evaluation = getEvaluation(totalScore);
 
