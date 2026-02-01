@@ -62,27 +62,37 @@ function App() {
   const [listeningCorrect, setListeningCorrect] = useState(0);
   const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
+  
+  // Trạng thái kiểm tra API Key
   const [hasKey, setHasKey] = useState<boolean>(!!process.env.API_KEY);
 
   useEffect(() => {
     const checkKey = async () => {
+      // Ưu tiên kiểm tra Bridge trước
       if (window.aistudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
-        setHasKey(selected || !!process.env.API_KEY);
+        if (selected) {
+          setHasKey(true);
+          return;
+        }
       }
+      // Nếu không có Bridge, kiểm tra biến môi trường
+      setHasKey(!!process.env.API_KEY && process.env.API_KEY !== "undefined");
     };
+
     checkKey();
-    // Re-check periodically in case they just added it
     const timer = setInterval(checkKey, 2000);
     return () => clearInterval(timer);
   }, []);
 
   const handleConnectKey = async () => {
     if (window.aistudio) {
+      // Đây là nơi "nhập mã" chính thức thông qua hộp thoại của Google
       await window.aistudio.openSelectKey();
-      setHasKey(true); // Assume success per instructions
+      setHasKey(true); // Giả định thành công để người dùng vào được app ngay
     } else {
-      window.open('https://aistudio.google.com/apikey', '_blank');
+      // Nếu không có bridge, mở trang lấy mã và nhắc nhở cấu hình Vercel
+      window.open('https://aistudio.google.com/app/apikey', '_blank');
     }
   };
 
@@ -90,25 +100,48 @@ function App() {
     return (
       <div className="min-h-screen bg-brand-900 flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden relative">
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-        <div className="max-w-xl w-full bg-white/10 backdrop-blur-xl p-10 md:p-16 rounded-[4rem] border-2 border-white/20 shadow-2xl flex flex-col items-center text-center animate-bounce-in relative z-10">
-          <MrsDungLogo className="w-40 h-40 mb-8 bg-white rounded-3xl p-3 shadow-xl" color="#16a34a" />
-          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter font-display">English Mrs. Dung</h1>
-          <p className="text-brand-200 text-lg font-bold mb-10 italic">"Hệ thống AI chưa được kết nối. Hãy bắt đầu hành trình của con ngay nhé!"</p>
+        <div className="max-w-2xl w-full bg-white/10 backdrop-blur-xl p-10 md:p-16 rounded-[4rem] border-2 border-white/20 shadow-2xl flex flex-col items-center text-center animate-bounce-in relative z-10">
+          <MrsDungLogo className="w-32 h-32 mb-8 bg-white rounded-3xl p-3 shadow-xl" color="#16a34a" />
+          <h1 className="text-3xl font-black mb-4 uppercase tracking-tighter font-display">CHƯA KẾT NỐI API KEY</h1>
+          <p className="text-brand-200 text-lg font-bold mb-10 italic">"Mrs. Dung cần chìa khóa để bắt đầu bài học. Bé hãy chọn cách kết nối bên dưới nhé!"</p>
           
-          <button 
-            onClick={handleConnectKey}
-            className="w-full py-6 bg-highlight-400 text-brand-900 rounded-3xl font-black text-2xl shadow-2xl hover:bg-highlight-300 transition-all transform active:scale-95 border-b-[10px] border-highlight-600 active:border-b-0 mb-8 uppercase"
-          >
-            🔑 KẾT NỐI API KEY
-          </button>
+          <div className="grid md:grid-cols-2 gap-6 w-full mb-10">
+            <div className="bg-white/5 p-8 rounded-3xl border border-white/10 flex flex-col items-center">
+              <span className="text-4xl mb-4">🪄</span>
+              <h3 className="font-black text-highlight-400 mb-2 uppercase">Cách 1: Bridge</h3>
+              <p className="text-xs opacity-60 mb-6 leading-relaxed">Sử dụng hộp thoại chọn Key tự động của Google AI Studio.</p>
+              <button 
+                onClick={handleConnectKey}
+                className="w-full py-4 bg-highlight-400 text-brand-900 rounded-2xl font-black text-xl shadow-xl hover:bg-highlight-300 transition-all transform active:scale-95 border-b-4 border-highlight-600 active:border-b-0 uppercase"
+              >
+                MỞ HỘP THOẠI
+              </button>
+            </div>
+            
+            <div className="bg-brand-800/40 p-8 rounded-3xl border border-white/10 flex flex-col items-center">
+              <span className="text-4xl mb-4">⚙️</span>
+              <h3 className="font-black text-brand-300 mb-2 uppercase">Cách 2: Vercel</h3>
+              <p className="text-xs opacity-60 mb-6 leading-relaxed">Dán Key vào Settings của Vercel (Dành cho chủ sở hữu).</p>
+              <a 
+                href="https://vercel.com/dashboard" 
+                target="_blank" 
+                rel="noreferrer"
+                className="w-full py-4 bg-white/10 text-white rounded-2xl font-black text-xl border border-white/20 hover:bg-white/20 text-center transition-all uppercase"
+              >
+                MỞ SETTINGS
+              </a>
+            </div>
+          </div>
 
-          <div className="space-y-4 text-sm text-brand-100/60 font-medium">
-            <p>1. Nhấn nút để chọn hoặc tạo API Key từ Google AI Studio.</p>
-            <p>2. Nếu dùng trên Vercel, hãy thêm biến <code className="bg-white/10 px-2 py-1 rounded text-white font-mono">API_KEY</code> vào Settings.</p>
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="block text-highlight-400 font-bold underline hover:text-white transition-colors">Lấy Key miễn phí tại đây ➔</a>
+          <div className="w-full bg-black/20 p-6 rounded-2xl border border-white/5 text-left text-sm space-y-4">
+             <div className="flex items-start gap-3">
+               <span className="text-highlight-400 font-black">LƯU Ý:</span>
+               <p className="text-brand-100/70 font-medium">Để dán mã thủ công lên Vercel: Vào <b>Settings</b> -> <b>Environment Variables</b> -> Thêm biến tên <b>API_KEY</b> và dán mã vào. Sau đó thực hiện <b>Redeploy</b> lại dự án.</p>
+             </div>
+             <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="block text-highlight-400 font-bold underline hover:text-white transition-colors text-center">Lấy mã API Key tại đây ➔</a>
           </div>
         </div>
-        <footer className="mt-12 text-brand-400 font-black text-xs uppercase tracking-widest opacity-40">English with Heart • Success with Mrs.Dung</footer>
+        <footer className="mt-12 text-brand-400 font-black text-xs uppercase tracking-widest opacity-40 italic">English with Heart • Success with Mrs.Dung</footer>
       </div>
     );
   }
@@ -191,6 +224,7 @@ function App() {
 
       <main className="max-w-[1400px] mx-auto px-6 py-10 flex-grow w-full relative">
         <div className={activeTab === 'planner' ? 'block' : 'hidden'}>
+          {/* ... giữ nguyên nội dung planner như file cũ ... */}
           <div className="space-y-16">
              {!lesson ? (
                <div className="bg-white rounded-[3rem] shadow-xl border-b-[12px] border-r-[12px] border-brand-100 p-8 md:p-16 max-w-4xl mx-auto animate-fade-in text-center relative overflow-hidden ring-4 ring-white">
