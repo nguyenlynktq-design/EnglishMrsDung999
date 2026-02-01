@@ -2,7 +2,11 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Sử dụng một hàm để khởi tạo AI, đảm bảo lấy API_KEY mới nhất từ process.env (đã được shim bởi Vite)
+const getAI = () => {
+  const apiKey = process.env.API_KEY || "";
+  return new GoogleGenAI({ apiKey });
+};
 
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -59,6 +63,7 @@ export const playGeminiTTS = async (text: string): Promise<void> => {
 };
 
 export const generateAudioFromContent = async (text: string): Promise<string> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text }] }],
@@ -75,6 +80,7 @@ export const generateAudioFromContent = async (text: string): Promise<string> =>
 };
 
 export const generateLessonPlan = async (topicInput?: string, textInput?: string, images: string[] = []): Promise<LessonPlan> => {
+  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType: 'image/jpeg' } }));
   const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE. 
   TASK: Analyze the provided content (text/images) and create a comprehensive lesson plan.
@@ -104,6 +110,7 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
 };
 
 export const analyzeImageAndCreateContent = async (images: string[], mimeType: string, char: CharacterProfile, mode: AppMode, customPrompt?: string, topic?: string, text?: string): Promise<ContentResult> => {
+  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType } }));
   const prompt = `MRS. DUNG AI - CREATIVE STORYTELLER.
   
@@ -152,6 +159,7 @@ const contentResultSchema = {
 };
 
 export const generateMindMap = async (content: any, mode: MindMapMode): Promise<MindMapData> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Create a professional Mind Map following Tony Buzan's principles for: ${JSON.stringify(content)}. 
@@ -163,6 +171,7 @@ export const generateMindMap = async (content: any, mode: MindMapMode): Promise<
 };
 
 export const evaluateSpeech = async (base64Audio: string): Promise<SpeechEvaluation> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: { parts: [{ inlineData: { data: base64Audio, mimeType: 'audio/wav' } }, { text: "Evaluate the student's speaking performance on a scale of 0-10. Provide encouraging feedback in Vietnamese." }] },
@@ -172,6 +181,7 @@ export const evaluateSpeech = async (base64Audio: string): Promise<SpeechEvaluat
 };
 
 export const generateStoryImage = async (prompt: string, style: string, ratio: ImageRatio): Promise<string> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
     contents: { parts: [{ text: `A high-quality educational illustration for kids: ${prompt}. Artistic Style: ${style}. High resolution, 8k, vibrant colors.` }] },
@@ -182,6 +192,7 @@ export const generateStoryImage = async (prompt: string, style: string, ratio: I
 };
 
 export const correctWriting = async (userText: string, creativePrompt: string): Promise<any> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Evaluate and correct this student writing: "${userText}". The topic was: "${creativePrompt}". Provide a score (0-10), feedback, fixed text, and detailed error list.`,
@@ -191,6 +202,7 @@ export const correctWriting = async (userText: string, creativePrompt: string): 
 };
 
 export const generatePresentation = async (data: MindMapData): Promise<PresentationScript> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `Create a professional English presentation script for a student based on this Mind Map data: ${JSON.stringify(data)}. 
@@ -202,6 +214,7 @@ export const generatePresentation = async (data: MindMapData): Promise<Presentat
 };
 
 export const generateMindMapPrompt = async (content: any, mode: MindMapMode): Promise<string> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({ 
     model: 'gemini-3-pro-preview', 
     contents: `TASK: Generate a single, highly detailed English prompt for drawing a professional Tony Buzan Mind Map using AI art tools (like Midjourney or DALL-E). 
