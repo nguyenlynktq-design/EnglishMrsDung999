@@ -62,26 +62,56 @@ function App() {
   const [listeningCorrect, setListeningCorrect] = useState(0);
   const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
+  const [hasKey, setHasKey] = useState<boolean>(!!process.env.API_KEY);
 
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          await window.aistudio.openSelectKey();
-        }
+        const selected = await window.aistudio.hasSelectedApiKey();
+        setHasKey(selected || !!process.env.API_KEY);
       }
     };
     checkKey();
+    // Re-check periodically in case they just added it
+    const timer = setInterval(checkKey, 2000);
+    return () => clearInterval(timer);
   }, []);
 
-  const handleOpenApiKeySettings = async () => {
+  const handleConnectKey = async () => {
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
+      setHasKey(true); // Assume success per instructions
     } else {
-      window.open('https://aistudio.google.com/api-keys', '_blank');
+      window.open('https://aistudio.google.com/apikey', '_blank');
     }
   };
+
+  if (!hasKey) {
+    return (
+      <div className="min-h-screen bg-brand-900 flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden relative">
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+        <div className="max-w-xl w-full bg-white/10 backdrop-blur-xl p-10 md:p-16 rounded-[4rem] border-2 border-white/20 shadow-2xl flex flex-col items-center text-center animate-bounce-in relative z-10">
+          <MrsDungLogo className="w-40 h-40 mb-8 bg-white rounded-3xl p-3 shadow-xl" color="#16a34a" />
+          <h1 className="text-4xl font-black mb-4 uppercase tracking-tighter font-display">English Mrs. Dung</h1>
+          <p className="text-brand-200 text-lg font-bold mb-10 italic">"Hệ thống AI chưa được kết nối. Hãy bắt đầu hành trình của con ngay nhé!"</p>
+          
+          <button 
+            onClick={handleConnectKey}
+            className="w-full py-6 bg-highlight-400 text-brand-900 rounded-3xl font-black text-2xl shadow-2xl hover:bg-highlight-300 transition-all transform active:scale-95 border-b-[10px] border-highlight-600 active:border-b-0 mb-8 uppercase"
+          >
+            🔑 KẾT NỐI API KEY
+          </button>
+
+          <div className="space-y-4 text-sm text-brand-100/60 font-medium">
+            <p>1. Nhấn nút để chọn hoặc tạo API Key từ Google AI Studio.</p>
+            <p>2. Nếu dùng trên Vercel, hãy thêm biến <code className="bg-white/10 px-2 py-1 rounded text-white font-mono">API_KEY</code> vào Settings.</p>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="block text-highlight-400 font-bold underline hover:text-white transition-colors">Lấy Key miễn phí tại đây ➔</a>
+          </div>
+        </div>
+        <footer className="mt-12 text-brand-400 font-black text-xs uppercase tracking-widest opacity-40">English with Heart • Success with Mrs.Dung</footer>
+      </div>
+    );
+  }
 
   const totalCorrectCount = (listeningCorrect || 0) + 
                          (megaScores.mc || 0) + 
@@ -119,11 +149,9 @@ function App() {
       setLesson(data);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) { 
-        if (err.message?.includes("Requested entity was not found")) {
-            setError("Lỗi API Key. Vui lòng nhấn Settings để chọn lại API Key hợp lệ.");
-            if (window.aistudio) {
-              await window.aistudio.openSelectKey();
-            }
+        if (err.message?.includes("API key not found") || err.message?.includes("Requested entity was not found")) {
+            setHasKey(false);
+            if (window.aistudio) await window.aistudio.openSelectKey();
         } else {
             setError(err.message || "Lỗi khi soạn bài, con hãy thử lại nhé!"); 
         }
@@ -151,22 +179,12 @@ function App() {
                ))}
             </div>
             
-            <div className="flex flex-col items-center">
-              <button 
-                onClick={handleOpenApiKeySettings}
-                className="bg-slate-800 text-white px-4 py-2 rounded-lg font-black text-xs hover:bg-slate-700 transition-all border border-white/20 shadow-md flex items-center gap-2"
-              >
-                <span>⚙️</span> Settings
-              </button>
-              <a 
-                href="https://aistudio.google.com/api-keys" 
-                target="_blank" 
-                rel="noreferrer"
-                className="text-red-500 font-bold text-[9px] mt-1 animate-pulse hover:underline"
-              >
-                Lấy API key để sử dụng app
-              </a>
-            </div>
+            <button 
+              onClick={handleConnectKey}
+              className="bg-brand-900/40 text-highlight-400 px-4 py-2 rounded-lg font-black text-xs hover:bg-brand-800 transition-all border border-highlight-400/30 flex items-center gap-2"
+            >
+              <span>⚙️</span> API Connected
+            </button>
           </div>
         </div>
       </header>
