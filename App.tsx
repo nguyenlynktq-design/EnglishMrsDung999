@@ -19,7 +19,6 @@ declare global {
   }
 
   interface Window {
-    // Fixed: Made aistudio optional to match system declarations and fix identical modifiers error
     aistudio?: AIStudio;
   }
 }
