@@ -17,7 +17,6 @@ declare global {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
   }
-
   interface Window {
     aistudio?: AIStudio;
   }
@@ -62,110 +61,40 @@ function App() {
   const [listeningCorrect, setListeningCorrect] = useState(0);
   const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [tempKey, setTempKey] = useState('');
   
-  const [hasKey, setHasKey] = useState<boolean>(!!process.env.API_KEY && process.env.API_KEY !== "undefined");
+  // Logic kiểm tra mã API: LocalStorage -> Env
+  const [apiKey, setApiKey] = useState<string | null>(localStorage.getItem('MRS_DUNG_API_KEY') || (process.env.API_KEY !== "undefined" ? process.env.API_KEY : null));
 
   useEffect(() => {
-    const checkKey = async () => {
-      if (window.aistudio) {
-        const selected = await window.aistudio.hasSelectedApiKey();
-        if (selected) {
-          setHasKey(true);
-          return;
-        }
-      }
-      setHasKey(!!process.env.API_KEY && process.env.API_KEY !== "undefined");
-    };
+    // Nếu chưa có key, hiện modal bắt buộc nhập
+    if (!apiKey) {
+      setShowKeyModal(true);
+    }
+  }, [apiKey]);
 
-    checkKey();
-    const timer = setInterval(checkKey, 3000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleConnectKey = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setHasKey(true);
-    } else {
-      window.open('https://aistudio.google.com/app/apikey', '_blank');
+  const saveKey = () => {
+    if (tempKey.trim()) {
+      localStorage.setItem('MRS_DUNG_API_KEY', tempKey.trim());
+      setApiKey(tempKey.trim());
+      setShowKeyModal(false);
+      setTempKey('');
+      window.location.reload(); // Reload để nhận key mới trong service
     }
   };
 
-  if (!hasKey) {
-    return (
-      <div className="min-h-screen bg-brand-900 flex flex-col items-center justify-center p-6 text-white font-sans overflow-hidden relative">
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-        <div className="max-w-2xl w-full bg-white/10 backdrop-blur-xl p-10 md:p-16 rounded-[4rem] border-2 border-white/20 shadow-2xl flex flex-col items-center text-center animate-bounce-in relative z-10">
-          <MrsDungLogo className="w-32 h-32 mb-8 bg-white rounded-3xl p-3 shadow-xl" color="#16a34a" />
-          <h1 className="text-3xl font-black mb-4 uppercase tracking-tighter font-display">CHƯA KẾT NỐI API KEY</h1>
-          <p className="text-brand-200 text-lg font-bold mb-10 italic">"Bé ơi, hãy dùng mã API Key của mình để khám phá bài học cùng Mrs. Dung nhé!"</p>
-          
-          <div className="grid md:grid-cols-2 gap-6 w-full mb-10">
-            <div className="bg-white/5 p-8 rounded-3xl border border-white/10 flex flex-col items-center">
-              <span className="text-4xl mb-4">🪄</span>
-              <h3 className="font-black text-highlight-400 mb-2 uppercase">Cách 1: Chọn Key</h3>
-              <p className="text-xs opacity-60 mb-6 leading-relaxed">Chọn mã API Key có sẵn trong tài khoản Google của bé.</p>
-              <button 
-                onClick={handleConnectKey}
-                className="w-full py-4 bg-highlight-400 text-brand-900 rounded-2xl font-black text-xl shadow-xl hover:bg-highlight-300 transition-all transform active:scale-95 border-b-4 border-highlight-600 active:border-b-0 uppercase"
-              >
-                KẾT NỐI NGAY
-              </button>
-            </div>
-            
-            <div className="bg-brand-800/40 p-8 rounded-3xl border border-white/10 flex flex-col items-center">
-              <span className="text-4xl mb-4">🔑</span>
-              <h3 className="font-black text-brand-300 mb-2 uppercase">Cách 2: Lấy mã mới</h3>
-              <p className="text-xs opacity-60 mb-6 leading-relaxed">Truy cập Google AI Studio để tạo mã Key miễn phí của bé.</p>
-              <a 
-                href="https://aistudio.google.com/app/apikey" 
-                target="_blank" 
-                rel="noreferrer"
-                className="w-full py-4 bg-white/10 text-white rounded-2xl font-black text-xl border border-white/20 hover:bg-white/20 text-center transition-all uppercase"
-              >
-                LẤY MÃ KEY
-              </a>
-            </div>
-          </div>
-
-          <div className="w-full bg-black/20 p-6 rounded-2xl border border-white/5 text-left text-sm space-y-4">
-             <div className="flex items-start gap-3">
-               <span className="text-highlight-400 font-black">HƯỚNG DẪN:</span>
-               <p className="text-brand-100/70 font-medium leading-relaxed">
-                 Để dán mã thủ công lên Vercel: Vào <b>Settings</b> {" \u2192 "} <b>Environment Variables</b> {" \u2192 "} Thêm biến tên <b>API_KEY</b> và dán mã vào. Sau đó nhấn <b>Redeploy</b> lại dự án.
-               </p>
-             </div>
-             <p className="text-brand-300 text-center font-bold text-xs italic opacity-70">Lưu ý: Sau khi chọn Key, hãy đợi 2-3 giây để ứng dụng tự động tải bài học.</p>
-          </div>
-        </div>
-        <footer className="mt-12 text-brand-400 font-black text-xs uppercase tracking-widest opacity-40 italic">English with Heart {" \u2022 "} Success with Mrs.Dung</footer>
-      </div>
-    );
-  }
-
-  const totalCorrectCount = (listeningCorrect || 0) + 
-                         (megaScores.mc || 0) + 
-                         (megaScores.fill || 0) + 
-                         (megaScores.error || 0) +
-                         (megaScores.scramble || 0);
-
-  const calculateTotalScore = () => {
-      return Math.round((totalCorrectCount / 50) * 10 * 10) / 10;
-  };
-
-  const getEvaluation = (score: number) => {
-      const s = score || 0;
-      if (s >= 9) return { text: "XUẤS SẮC", emoji: "🏆", level: "EXCELLENT", praise: "Con là một ngôi sao sáng nhất lớp Mrs. Dung!" };
-      if (s >= 7) return { text: "KHÁ GIỎI", emoji: "🌟", level: "GREAT JOB", praise: "Con làm bài rất tuyệt vời, tiếp tục phát huy nhé!" };
-      if (s >= 5) return { text: "CỐ GẰNG", emoji: "👍", level: "GOOD EFFORT", praise: "Con đã nỗ lực rất nhiều, Mrs. Dung tự hào về con!" };
-      return { text: "CẦN NỖ LỰC", emoji: "💪", level: "KEEP IT UP", praise: "Đừng nản lòng con nhé, bài sau mình làm tốt hơn nào!" };
-  };
-
   const handleGenerate = async () => {
+    if (!apiKey) { setShowKeyModal(true); return; }
     if (plannerMode === 'topic' && !topic.trim()) { setError("Hãy nhập chủ đề bài học con nhé!"); return; }
     if (plannerMode === 'text' && !lessonText.trim()) { setError("Hãy dán nội dung bài học vào đây!"); return; }
     if (plannerMode === 'image' && selectedFiles.length === 0) { setError("Hãy chọn ít nhất một tấm ảnh tài liệu!"); return; }
-    setLoading(true); setError(null); setLesson(null); setShowCertificate(false);
+    
+    setLoading(true); 
+    setError(null); 
+    setLesson(null); 
+    setShowCertificate(false);
+
     try {
       let base64Images: string[] = [];
       if (plannerMode === 'image' && selectedFiles.length > 0) {
@@ -179,22 +108,70 @@ function App() {
       setLesson(data);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) { 
-        if (err.message?.includes("API key not found") || err.message?.includes("Requested entity was not found")) {
-            setHasKey(false);
-            if (window.aistudio) await window.aistudio.openSelectKey();
-        } else if (err.message?.includes("429") || err.message?.includes("exhausted")) {
-            setError("Lỗi: Quá giới hạn sử dụng (429). Bé hãy thử đổi API Key khác hoặc đợi một chút nhé!");
+        // Hiển thị nguyên văn lỗi từ API như yêu cầu
+        const rawError = err.message || "Lỗi không xác định";
+        if (rawError.includes("429") || rawError.includes("RESOURCE_EXHAUSTED")) {
+            setError("LỖI 429: Hết hạn mức sử dụng (Quota Exhausted). Cô hãy đổi API Key khác nhé!");
+        } else if (rawError.includes("401") || rawError.includes("API_KEY_INVALID")) {
+            setError("LỖI 401: Mã API Key không hợp lệ. Cô hãy kiểm tra lại nhé!");
         } else {
-            setError(err.message || "Lỗi khi soạn bài, con hãy thử lại nhé!"); 
+            setError(`LỖI HỆ THỐNG: ${rawError}`);
         }
-    } finally { setLoading(false); }
+    } finally { 
+        setLoading(false); 
+    }
   };
 
   const totalScore = calculateTotalScore();
   const evaluation = getEvaluation(totalScore);
 
+  function calculateTotalScore() {
+    return Math.round((totalCorrectCount / 50) * 10 * 10) / 10;
+  }
+
+  function getEvaluation(score: number) {
+    const s = score || 0;
+    if (s >= 9) return { text: "XUẤS SẮC", emoji: "🏆", level: "EXCELLENT", praise: "Con là một ngôi sao sáng nhất lớp Mrs. Dung!" };
+    if (s >= 7) return { text: "KHÁ GIỎI", emoji: "🌟", level: "GREAT JOB", praise: "Con làm bài rất tuyệt vời, tiếp tục phát huy nhé!" };
+    if (s >= 5) return { text: "CỐ GẮNG", emoji: "👍", level: "GOOD EFFORT", praise: "Con đã nỗ lực rất nhiều, Mrs. Dung tự hào về con!" };
+    return { text: "CẦN NỖ LỰC", emoji: "💪", level: "KEEP IT UP", praise: "Đừng nản lòng con nhé, bài sau mình làm tốt hơn nào!" };
+  }
+
   return (
     <div className="min-h-screen bg-brand-50 flex flex-col font-serif text-slate-900">
+      {/* Modal Nhập Key */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-[100] bg-brand-900/90 backdrop-blur-xl flex items-center justify-center p-6">
+           <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl border-4 border-highlight-400 animate-bounce-in relative">
+              <MrsDungLogo className="w-20 h-20 mx-auto mb-6 bg-brand-50 rounded-2xl p-2" color="#16a34a" />
+              <h2 className="text-2xl font-black text-center mb-2 uppercase font-display">CÀI ĐẶT API KEY</h2>
+              <p className="text-slate-500 text-center mb-8 font-medium italic">"Mrs. Dung cần chìa khóa của cô để bắt đầu bài học!"</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-black text-brand-600 uppercase tracking-widest mb-2">Nhập mã Gemini API Key:</label>
+                  <input 
+                    type="password" 
+                    value={tempKey} 
+                    onChange={e => setTempKey(e.target.value)} 
+                    placeholder="Dán mã API của cô vào đây..." 
+                    className="w-full p-4 text-lg rounded-2xl border-4 border-brand-50 focus:border-brand-500 outline-none font-mono"
+                  />
+                </div>
+                <div className="bg-brand-50 p-4 rounded-xl text-xs text-brand-700 font-bold leading-relaxed">
+                  Lưu ý: Mã này sẽ được lưu an toàn trên máy tính này. Cô có thể lấy mã miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" className="underline text-brand-900">Google AI Studio</a>.
+                </div>
+                <div className="flex gap-4">
+                  {apiKey && (
+                    <button onClick={() => setShowKeyModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest">Hủy</button>
+                  )}
+                  <button onClick={saveKey} className="flex-[2] py-4 bg-brand-600 text-white rounded-2xl font-black text-xl shadow-xl hover:bg-brand-700 uppercase tracking-tighter">Lưu & Bắt đầu</button>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       <header className="bg-brand-700 border-b-4 border-brand-800 sticky top-0 z-50 shadow-xl">
         <div className="max-w-[1600px] mx-auto px-6 h-24 flex items-center justify-between">
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab('planner')}>
@@ -212,7 +189,7 @@ function App() {
             </div>
             
             <button 
-              onClick={handleConnectKey}
+              onClick={() => setShowKeyModal(true)}
               className="bg-brand-900/40 text-highlight-400 px-4 py-2 rounded-lg font-black text-xs hover:bg-brand-800 transition-all border border-highlight-400/30 flex items-center gap-2"
             >
               <span>⚙️</span> Cài đặt API
@@ -230,6 +207,7 @@ function App() {
                   <MrsDungLogo className="w-32 h-32 mx-auto mb-8 drop-shadow-xl" color="#15803d" />
                   <h2 className="text-2xl md:text-4xl font-black text-brand-800 mb-2 uppercase tracking-tighter font-display">Let's learn English with Mrs. Dung</h2>
                   <p className="text-sm font-black text-slate-400 mb-8 uppercase italic opacity-60">"English with Heart. Success with Mrs.Dung"</p>
+                  
                   <div className="space-y-8 text-left">
                      <div className="flex bg-slate-100 p-2 rounded-2xl gap-2 shadow-inner">
                         {[{ id: 'topic', label: 'Chủ đề', icon: '💡' }, { id: 'text', label: 'Văn bản', icon: '📝' }, { id: 'image', label: 'Hình ảnh', icon: '📸' }].map(m => (

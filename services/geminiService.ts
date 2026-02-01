@@ -2,10 +2,75 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation } from "../types";
 
-// Sử dụng một hàm để khởi tạo AI, đảm bảo lấy API_KEY mới nhất từ process.env (đã được shim bởi Vite)
+// ============== CẤU HÌNH MODEL AI & CƠ CHẾ FALLBACK ==============
+// Danh sách model theo thứ tự ưu tiên: Tối ưu tư duy sâu → Nhanh → Ổn định
+const TEXT_MODELS = [
+  'gemini-3-pro-preview',   // Model mặc định - Tối ưu tư duy sâu
+  'gemini-2.5-flash',       // Model dự phòng 1 - Nhanh
+  'gemini-2.5-pro'          // Model dự phòng 2 - Ổn định
+];
+
+// Hàm lấy API Key linh hoạt: LocalStorage -> Environment Variable
+const getApiKey = () => {
+  const savedKey = localStorage.getItem('MRS_DUNG_API_KEY');
+  if (savedKey && savedKey.trim() !== "") return savedKey;
+  return process.env.API_KEY || "";
+};
+
 const getAI = () => {
-  const apiKey = process.env.API_KEY || "";
+  const apiKey = getApiKey();
   return new GoogleGenAI({ apiKey });
+};
+
+// ============== HÀM GỌI API VỚI CƠ CHẾ FALLBACK TỰ ĐỘNG ==============
+interface CallOptions {
+  contents: any;
+  config?: any;
+}
+
+/**
+ * Gọi API với cơ chế fallback tự động.
+ * Nếu model hiện tại gặp lỗi (429, 500, 503...), tự động retry với model tiếp theo.
+ */
+const callWithFallback = async (options: CallOptions, modelIndex = 0): Promise<any> => {
+  const ai = getAI();
+  const currentModel = TEXT_MODELS[modelIndex];
+
+  if (!currentModel) {
+    throw new Error(`TẤT CẢ CÁC MODEL ĐỀU THẤT BẠI. Vui lòng kiểm tra API Key hoặc thử lại sau.`);
+  }
+
+  console.log(`[Mrs. Dung AI] Đang thử model: ${currentModel}...`);
+
+  try {
+    const response = await ai.models.generateContent({
+      model: currentModel,
+      ...options
+    });
+    console.log(`[Mrs. Dung AI] ✅ Thành công với model: ${currentModel}`);
+    return response;
+  } catch (error: any) {
+    const errorMessage = error?.message || String(error);
+    const errorCode = error?.status || error?.code || '';
+
+    // Các lỗi có thể retry với model khác
+    const isRetryableError =
+      errorMessage.includes('429') ||
+      errorMessage.includes('RESOURCE_EXHAUSTED') ||
+      errorMessage.includes('503') ||
+      errorMessage.includes('500') ||
+      errorMessage.includes('UNAVAILABLE') ||
+      errorMessage.includes('overloaded') ||
+      errorMessage.includes('quota');
+
+    if (isRetryableError && modelIndex < TEXT_MODELS.length - 1) {
+      console.warn(`[Mrs. Dung AI] ⚠️ Model ${currentModel} gặp lỗi: ${errorCode || errorMessage}. Đang chuyển sang model dự phòng...`);
+      return callWithFallback(options, modelIndex + 1);
+    }
+
+    // Nếu không thể retry hoặc hết model -> Throw lỗi gốc với thông tin chi tiết
+    throw new Error(`[${currentModel}] ${errorMessage}`);
+  }
 };
 
 export const fileToBase64 = (file: File): Promise<string> => {
@@ -29,7 +94,7 @@ export const playGeminiTTS = async (text: string): Promise<void> => {
         return;
       }
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      
+
       const decodeBase64 = (base64: string) => {
         const binaryString = atob(base64);
         const bytes = new Uint8Array(binaryString.length);
@@ -55,9 +120,9 @@ export const playGeminiTTS = async (text: string): Promise<void> => {
         resolve();
       };
       source.start();
-    } catch (e) { 
-      console.error("TTS Error:", e); 
-      resolve(); 
+    } catch (e) {
+      console.error("TTS Error:", e);
+      resolve();
     }
   });
 };
@@ -69,10 +134,10 @@ export const generateAudioFromContent = async (text: string): Promise<string> =>
     contents: [{ parts: [{ text }] }],
     config: {
       responseModalities: [Modality.AUDIO],
-      speechConfig: { 
-        voiceConfig: { 
+      speechConfig: {
+        voiceConfig: {
           prebuiltVoiceConfig: { voiceName: 'Kore' }
-        } 
+        }
       }
     },
   });
@@ -80,7 +145,6 @@ export const generateAudioFromContent = async (text: string): Promise<string> =>
 };
 
 export const generateLessonPlan = async (topicInput?: string, textInput?: string, images: string[] = []): Promise<LessonPlan> => {
-  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType: 'image/jpeg' } }));
   const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE. 
   TASK: Analyze the provided content (text/images) and create a comprehensive lesson plan.
@@ -101,8 +165,8 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   inputParts.push(...imageParts);
   inputParts.push({ text: prompt });
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview', 
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: { parts: inputParts },
     config: { responseMimeType: "application/json", responseSchema: lessonSchema }
   });
@@ -110,7 +174,6 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
 };
 
 export const analyzeImageAndCreateContent = async (images: string[], mimeType: string, char: CharacterProfile, mode: AppMode, customPrompt?: string, topic?: string, text?: string): Promise<ContentResult> => {
-  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType } }));
   const prompt = `MRS. DUNG AI - CREATIVE STORYTELLER.
   
@@ -123,8 +186,8 @@ export const analyzeImageAndCreateContent = async (images: string[], mimeType: s
   Source material: Topic: ${topic || "N/A"}, Text: ${text || "N/A"}.
   Character context: ${char.promptContext}.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: { parts: [...imageParts, { text: prompt }] },
     config: { responseMimeType: "application/json", responseSchema: contentResultSchema }
   });
@@ -159,9 +222,8 @@ const contentResultSchema = {
 };
 
 export const generateMindMap = async (content: any, mode: MindMapMode): Promise<MindMapData> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: `Create a professional Mind Map following Tony Buzan's principles for: ${JSON.stringify(content)}. 
     Structure: Root node is the main topic. Child nodes are key sub-concepts with emojis. 
     Output strictly in JSON format matching the schema.`,
@@ -171,9 +233,8 @@ export const generateMindMap = async (content: any, mode: MindMapMode): Promise<
 };
 
 export const evaluateSpeech = async (base64Audio: string): Promise<SpeechEvaluation> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: { parts: [{ inlineData: { data: base64Audio, mimeType: 'audio/wav' } }, { text: "Evaluate the student's speaking performance on a scale of 0-10. Provide encouraging feedback in Vietnamese." }] },
     config: { responseMimeType: "application/json", responseSchema: speechEvaluationSchema }
   });
@@ -192,9 +253,8 @@ export const generateStoryImage = async (prompt: string, style: string, ratio: I
 };
 
 export const correctWriting = async (userText: string, creativePrompt: string): Promise<any> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: `Evaluate and correct this student writing: "${userText}". The topic was: "${creativePrompt}". Provide a score (0-10), feedback, fixed text, and detailed error list.`,
     config: { responseMimeType: "application/json", responseSchema: writingCorrectionSchema }
   });
@@ -202,9 +262,8 @@ export const correctWriting = async (userText: string, creativePrompt: string): 
 };
 
 export const generatePresentation = async (data: MindMapData): Promise<PresentationScript> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: `Create a professional English presentation script for a student based on this Mind Map data: ${JSON.stringify(data)}. 
     Include a warm introduction, body sections for each node, and a polite conclusion. 
     Provide both English script and Vietnamese translation.`,
@@ -214,9 +273,8 @@ export const generatePresentation = async (data: MindMapData): Promise<Presentat
 };
 
 export const generateMindMapPrompt = async (content: any, mode: MindMapMode): Promise<string> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({ 
-    model: 'gemini-3-pro-preview', 
+  // Sử dụng callWithFallback để tự động retry với model dự phòng
+  const response = await callWithFallback({
     contents: `TASK: Generate a single, highly detailed English prompt for drawing a professional Tony Buzan Mind Map using AI art tools (like Midjourney or DALL-E). 
     CONTENT SOURCE: ${JSON.stringify(content)}. 
     
@@ -228,7 +286,7 @@ export const generateMindMapPrompt = async (content: any, mode: MindMapMode): Pr
     - Environment: Clean bright studio background, 8k resolution, cinematic lighting, vibrant pedagogical colors.
     - Exclude: No text other than the keywords. 
     
-    JUST PROVIDE THE RAW PROMPT STRING.` 
+    JUST PROVIDE THE RAW PROMPT STRING.`
   });
   return response.text;
 };
