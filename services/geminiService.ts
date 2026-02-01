@@ -11,9 +11,12 @@ const TEXT_MODELS = [
 ];
 
 // Hàm lấy API Key linh hoạt: LocalStorage -> Environment Variable
+// Thêm kiểm tra typeof window để tránh lỗi SSR trên Vercel
 const getApiKey = () => {
-  const savedKey = localStorage.getItem('MRS_DUNG_API_KEY');
-  if (savedKey && savedKey.trim() !== "") return savedKey;
+  if (typeof window !== 'undefined') {
+    const savedKey = localStorage.getItem('MRS_DUNG_API_KEY');
+    if (savedKey && savedKey.trim() !== "") return savedKey;
+  }
   return process.env.API_KEY || "";
 };
 
