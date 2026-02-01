@@ -59,7 +59,7 @@ export const VocabularySection: React.FC<VocabularySectionProps> = ({ items = []
                   </p>
                   {showMeaning && item.sentenceMeaning && (
                     <p className="text-brand-500 text-[10px] font-black mt-2 border-t border-slate-200 pt-2 uppercase tracking-wider">
-                      ➔ {item.sentenceMeaning}
+                      {"\u2794"} {item.sentenceMeaning}
                     </p>
                   )}
                   <button 
