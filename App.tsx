@@ -23,7 +23,12 @@ declare global {
   }
 }
 
-const MrsDungLogo = ({ className = "w-16 h-16", color = "currentColor" }) => (
+interface LogoProps {
+  className?: string;
+  color?: string;
+}
+
+const MrsDungLogo = ({ className = "w-16 h-16", color = "currentColor" }: LogoProps) => (
   <div className={`relative ${className} flex items-center justify-center`}>
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <g stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
