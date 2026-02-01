@@ -17,7 +17,7 @@ export const VocabularySection: React.FC<VocabularySectionProps> = ({ items = []
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center border-b-2 border-brand-100 pb-4">
-        <h2 className="text-3xl font-black text-brand-800 uppercase tracking-tighter">Vocabulary List 📖</h2>
+        <h2 className="text-3xl font-black text-brand-800 uppercase tracking-tighter">Vocabulary List {"\uD83D\uDCD6"}</h2>
         <button
           onClick={() => setShowMeaning(!showMeaning)}
           className="text-sm bg-white border-2 border-brand-100 px-4 py-1.5 rounded-full hover:bg-brand-50 transition-all text-brand-600 font-black uppercase tracking-widest shadow-sm"
@@ -30,7 +30,7 @@ export const VocabularySection: React.FC<VocabularySectionProps> = ({ items = []
         {items.map((item, idx) => (
             <div key={idx} className="bg-white p-6 rounded-[2.5rem] shadow-lg border-2 border-slate-50 flex gap-6 hover:shadow-xl transition-all items-start group hover:-translate-y-1">
               <div className="shrink-0 relative mt-1 w-24 h-24 bg-brand-50 rounded-2xl overflow-hidden border-2 border-white shadow-inner flex items-center justify-center transform group-hover:rotate-6 transition-all">
-                 <span className="text-5xl select-none">{item.emoji || '📝'}</span>
+                 <span className="text-5xl select-none">{item.emoji || "\uD83D\uDCDD"}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">

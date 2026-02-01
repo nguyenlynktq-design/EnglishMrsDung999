@@ -78,7 +78,7 @@ function App() {
     };
 
     checkKey();
-    const timer = setInterval(checkKey, 2000);
+    const timer = setInterval(checkKey, 3000);
     return () => clearInterval(timer);
   }, []);
 
@@ -157,7 +157,7 @@ function App() {
       const s = score || 0;
       if (s >= 9) return { text: "XUẤS SẮC", emoji: "🏆", level: "EXCELLENT", praise: "Con là một ngôi sao sáng nhất lớp Mrs. Dung!" };
       if (s >= 7) return { text: "KHÁ GIỎI", emoji: "🌟", level: "GREAT JOB", praise: "Con làm bài rất tuyệt vời, tiếp tục phát huy nhé!" };
-      if (s >= 5) return { text: "CỐ GẮNG", emoji: "👍", level: "GOOD EFFORT", praise: "Con đã nỗ lực rất nhiều, Mrs. Dung tự hào về con!" };
+      if (s >= 5) return { text: "CỐ GẰNG", emoji: "👍", level: "GOOD EFFORT", praise: "Con đã nỗ lực rất nhiều, Mrs. Dung tự hào về con!" };
       return { text: "CẦN NỖ LỰC", emoji: "💪", level: "KEEP IT UP", praise: "Đừng nản lòng con nhé, bài sau mình làm tốt hơn nào!" };
   };
 
@@ -182,6 +182,8 @@ function App() {
         if (err.message?.includes("API key not found") || err.message?.includes("Requested entity was not found")) {
             setHasKey(false);
             if (window.aistudio) await window.aistudio.openSelectKey();
+        } else if (err.message?.includes("429") || err.message?.includes("exhausted")) {
+            setError("Lỗi: Quá giới hạn sử dụng (429). Bé hãy thử đổi API Key khác hoặc đợi một chút nhé!");
         } else {
             setError(err.message || "Lỗi khi soạn bài, con hãy thử lại nhé!"); 
         }
@@ -213,7 +215,7 @@ function App() {
               onClick={handleConnectKey}
               className="bg-brand-900/40 text-highlight-400 px-4 py-2 rounded-lg font-black text-xs hover:bg-brand-800 transition-all border border-highlight-400/30 flex items-center gap-2"
             >
-              <span>⚙️</span> Key Connected
+              <span>⚙️</span> Cài đặt API
             </button>
           </div>
         </div>
