@@ -2,78 +2,9 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation } from "../types";
 
-// ============== CẤU HÌNH MODEL AI & CƠ CHẾ FALLBACK ==============
-// Danh sách model theo thứ tự ưu tiên: Tối ưu tư duy sâu → Nhanh → Ổn định
-const TEXT_MODELS = [
-  'gemini-3-pro-preview',   // Model mặc định - Tối ưu tư duy sâu
-  'gemini-2.5-flash',       // Model dự phòng 1 - Nhanh
-  'gemini-2.5-pro'          // Model dự phòng 2 - Ổn định
-];
-
-// Hàm lấy API Key linh hoạt: LocalStorage -> Environment Variable
-// Thêm kiểm tra typeof window để tránh lỗi SSR trên Vercel
-const getApiKey = () => {
-  if (typeof window !== 'undefined') {
-    const savedKey = localStorage.getItem('MRS_DUNG_API_KEY');
-    if (savedKey && savedKey.trim() !== "") return savedKey;
-  }
-  return process.env.API_KEY || "";
-};
-
+// Use the API Key exclusively from the environment variable as per guidelines
 const getAI = () => {
-  const apiKey = getApiKey();
-  return new GoogleGenAI({ apiKey });
-};
-
-// ============== HÀM GỌI API VỚI CƠ CHẾ FALLBACK TỰ ĐỘNG ==============
-interface CallOptions {
-  contents: any;
-  config?: any;
-}
-
-/**
- * Gọi API với cơ chế fallback tự động.
- * Nếu model hiện tại gặp lỗi (429, 500, 503...), tự động retry với model tiếp theo.
- */
-const callWithFallback = async (options: CallOptions, modelIndex = 0): Promise<any> => {
-  const ai = getAI();
-  const currentModel = TEXT_MODELS[modelIndex];
-
-  if (!currentModel) {
-    throw new Error(`TẤT CẢ CÁC MODEL ĐỀU THẤT BẠI. Vui lòng kiểm tra API Key hoặc thử lại sau.`);
-  }
-
-  console.log(`[Mrs. Dung AI] Đang thử model: ${currentModel}...`);
-
-  try {
-    const response = await ai.models.generateContent({
-      model: currentModel,
-      ...options
-    });
-    console.log(`[Mrs. Dung AI] ✅ Thành công với model: ${currentModel}`);
-    return response;
-  } catch (error: any) {
-    const errorMessage = error?.message || String(error);
-    const errorCode = error?.status || error?.code || '';
-
-    // Các lỗi có thể retry với model khác
-    const isRetryableError =
-      errorMessage.includes('429') ||
-      errorMessage.includes('RESOURCE_EXHAUSTED') ||
-      errorMessage.includes('503') ||
-      errorMessage.includes('500') ||
-      errorMessage.includes('UNAVAILABLE') ||
-      errorMessage.includes('overloaded') ||
-      errorMessage.includes('quota');
-
-    if (isRetryableError && modelIndex < TEXT_MODELS.length - 1) {
-      console.warn(`[Mrs. Dung AI] ⚠️ Model ${currentModel} gặp lỗi: ${errorCode || errorMessage}. Đang chuyển sang model dự phòng...`);
-      return callWithFallback(options, modelIndex + 1);
-    }
-
-    // Nếu không thể retry hoặc hết model -> Throw lỗi gốc với thông tin chi tiết
-    throw new Error(`[${currentModel}] ${errorMessage}`);
-  }
+  return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
 export const fileToBase64 = (file: File): Promise<string> => {
@@ -88,41 +19,108 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// ===== TTS SYSTEM: Stable American English Pronunciation =====
+// Primary: Web Speech API (fast, native, reliable)
+// Fallback: Gemini TTS (for enhanced quality when available)
+
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+let cachedVoice: SpeechSynthesisVoice | null = null;
+
+// Get the best American English voice available
+const getAmericanEnglishVoice = (): SpeechSynthesisVoice | null => {
+  if (cachedVoice) return cachedVoice;
+
+  const voices = window.speechSynthesis.getVoices();
+
+  // Priority order for American English voices
+  const preferredVoices = [
+    'Google US English',
+    'Microsoft Aria Online (Natural) - English (United States)',
+    'Microsoft Guy Online (Natural) - English (United States)',
+    'Samantha',
+    'Alex',
+  ];
+
+  // Try to find preferred voice first
+  for (const preferredName of preferredVoices) {
+    const voice = voices.find(v => v.name.includes(preferredName));
+    if (voice) {
+      cachedVoice = voice;
+      return voice;
+    }
+  }
+
+  // Fallback: any en-US voice
+  const usVoice = voices.find(v => v.lang === 'en-US');
+  if (usVoice) {
+    cachedVoice = usVoice;
+    return usVoice;
+  }
+
+  // Last fallback: any English voice
+  const enVoice = voices.find(v => v.lang.startsWith('en'));
+  if (enVoice) {
+    cachedVoice = enVoice;
+    return enVoice;
+  }
+
+  return null;
+};
+
+// Pre-load voices when page loads
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    cachedVoice = null;
+    getAmericanEnglishVoice();
+  };
+  // Initial load
+  getAmericanEnglishVoice();
+}
+
 export const playGeminiTTS = async (text: string): Promise<void> => {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     try {
-      const audioData = await generateAudioFromContent(text);
-      if (!audioData) {
+      // Cancel any currently playing audio
+      if (currentUtterance) {
+        window.speechSynthesis.cancel();
+      }
+
+      // Clean text for better pronunciation
+      const cleanText = text.trim().replace(/[^\w\s.,!?'-]/g, '');
+      if (!cleanText) {
         resolve();
         return;
       }
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
-      const decodeBase64 = (base64: string) => {
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-        return bytes;
-      };
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      currentUtterance = utterance;
 
-      const decodeAudioData = async (data: Uint8Array, ctx: AudioContext) => {
-        const dataInt16 = new Int16Array(data.buffer);
-        const frameCount = dataInt16.length;
-        const buffer = ctx.createBuffer(1, frameCount, 24000);
-        const channelData = buffer.getChannelData(0);
-        for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i] / 32768.0;
-        return buffer;
-      };
+      // Force American English settings
+      utterance.lang = 'en-US';
+      utterance.rate = 0.95; // Slightly slower for clarity
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
 
-      const buffer = await decodeAudioData(decodeBase64(audioData), audioContext);
-      const source = audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContext.destination);
-      source.onended = () => {
-        audioContext.close();
+      // Use cached American English voice
+      const voice = getAmericanEnglishVoice();
+      if (voice) {
+        utterance.voice = voice;
+      }
+
+      utterance.onend = () => {
+        currentUtterance = null;
         resolve();
       };
-      source.start();
+
+      utterance.onerror = (e) => {
+        console.warn('TTS Warning:', e.error);
+        currentUtterance = null;
+        resolve();
+      };
+
+      // Start speaking
+      window.speechSynthesis.speak(utterance);
+
     } catch (e) {
       console.error("TTS Error:", e);
       resolve();
@@ -130,6 +128,15 @@ export const playGeminiTTS = async (text: string): Promise<void> => {
   });
 };
 
+// Stop any playing audio
+export const stopTTS = () => {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  currentUtterance = null;
+};
+
+// Optional: Gemini TTS for high-quality audio (can be used as enhancement)
 export const generateAudioFromContent = async (text: string): Promise<string> => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -148,17 +155,70 @@ export const generateAudioFromContent = async (text: string): Promise<string> =>
 };
 
 export const generateLessonPlan = async (topicInput?: string, textInput?: string, images: string[] = []): Promise<LessonPlan> => {
+  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType: 'image/jpeg' } }));
-  const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE. 
+  const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE (CHUYÊN GIA TIẾNG ANH).
   TASK: Analyze the provided content (text/images) and create a comprehensive lesson plan.
   
+  CRITICAL LANGUAGE REQUIREMENTS:
+  - GRAMMAR section:
+    * "topic": Keep in English (the grammar rule name)
+    * "explanation": MUST be in VIETNAMESE (giải thích bằng tiếng Việt, dễ hiểu cho học sinh)
+    * "examples": Each example MUST include Vietnamese translation in format: "English sentence" → "bản dịch tiếng việt viết thường"
+  
+  - VOCABULARY section:
+    * "word": English word
+    * "meaning": MUST be in VIETNAMESE, lowercase (ví dụ: "luôn luôn", "thường xuyên")
+    * "example": English example sentence
+    * "sentenceMeaning": MUST be VIETNAMESE translation of the example, lowercase (ví dụ: "tôi luôn uống cà phê vào buổi sáng")
+  
+  ===== MEGATEST EXERCISE REQUIREMENTS (CHẤT LƯỢNG CHUYÊN GIA) =====
+  
+  🎯 GENERAL QUALITY RULES:
+  - Act as a PROFESSIONAL ENGLISH TEACHER creating PERFECT exercises
+  - Each question MUST test a specific grammar rule from the lesson
+  - Correct answer MUST be 100% unambiguous - no multiple correct answers
+  - All distractors (wrong options) MUST be clearly incorrect grammatically
+  - NEVER create questions with ambiguous or debatable answers
+  
+  📝 MULTIPLE CHOICE (multipleChoice):
+  - "question": A sentence with ONE blank using "____" for the gap
+  - "options": 4 options [A, B, C, D] - only ONE correct
+  - "correctAnswer": Index of correct option (0-3)
+  - "explanation": 
+    * If CORRECT: Vietnamese encouragement like "Tuyệt vời! Con giỏi lắm! Đây là vị trí đúng của trạng từ tần suất."
+    * If WRONG: Vietnamese detailed explanation like "Đáp án đúng là B vì trạng từ tần suất 'always' phải đứng trước động từ thường. Ví dụ: I always eat breakfast."
+
+  📝 FILL-IN-THE-BLANK (fillBlank):
+  - "question": Use EXACTLY this format for blanks:
+    * 1 word answer → use ONE underscore group: "She ____ drinks milk" (đáp án 1 từ dùng 1 ô trống)
+    * 2 words answer → use TWO underscore groups: "She ____ ____ milk" (đáp án 2 từ dùng 2 ô trống)
+  - "correctAnswer": The exact word(s) to fill in
+  - Number of blank groups (____) MUST equal number of words in correctAnswer
+  
+  📝 ERROR IDENTIFICATION (errorId):
+  - "sentence": Complete sentence with FOUR parts marked (A), (B), (C), (D)
+    Format: "She (A) often (B) is (C) tired (D) after work."
+    The parts should be underlined/marked words, NOT the whole sentence split
+  - "options": ["(A) often", "(B) is", "(C) tired", "(D) after"] - the 4 marked parts
+  - "correctOptionIndex": Index (0-3) of the WRONG/ERROR option
+  - "explanation": Vietnamese explanation of WHY it's wrong and HOW to fix it
+    Example: "Lỗi ở (B) 'is'. Đúng phải là 'She is often tired' vì trạng từ tần suất đứng sau động từ TO BE."
+
+  📝 SCRAMBLE (scramble):
+  - "scrambled": Array of words to arrange (shuffled)
+  - "correctSentence": The properly ordered sentence
+  - "translation": Vietnamese translation of the correct sentence
+
   MANDATORY REQUIREMENTS:
   1. Extract 100% of the key vocabulary and grammar points from the source.
-  2. Create EXACTLY 10 Listening Questions.
-  3. Create EXACTLY 10 Multiple Choice Questions (MegaTest).
-  4. Create EXACTLY 10 Scramble Questions (MegaTest).
-  5. Create EXACTLY 10 Fill-in-the-blank Questions (MegaTest).
-  6. Create EXACTLY 10 Error Identification Questions (MegaTest).
+  2. Create EXACTLY 10 Multiple Choice Questions (MegaTest).
+  3. Create EXACTLY 10 Scramble Questions (MegaTest).
+  4. Create EXACTLY 10 Fill-in-the-blank Questions (MegaTest).
+  5. Create EXACTLY 10 Error Identification Questions (MegaTest).
+  NOTE: Do NOT create Listening Questions.
+  
+  ⚠️ QUALITY CHECK: Before finalizing, verify EVERY question has ONE clear correct answer.
   
   All content must align strictly with the source provided. Do not invent unrelated topics.`;
 
@@ -168,8 +228,8 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   inputParts.push(...imageParts);
   inputParts.push({ text: prompt });
 
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: { parts: inputParts },
     config: { responseMimeType: "application/json", responseSchema: lessonSchema }
   });
@@ -177,6 +237,7 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
 };
 
 export const analyzeImageAndCreateContent = async (images: string[], mimeType: string, char: CharacterProfile, mode: AppMode, customPrompt?: string, topic?: string, text?: string): Promise<ContentResult> => {
+  const ai = getAI();
   const imageParts = images.map(data => ({ inlineData: { data, mimeType } }));
   const prompt = `MRS. DUNG AI - CREATIVE STORYTELLER.
   
@@ -189,8 +250,8 @@ export const analyzeImageAndCreateContent = async (images: string[], mimeType: s
   Source material: Topic: ${topic || "N/A"}, Text: ${text || "N/A"}.
   Character context: ${char.promptContext}.`;
 
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: { parts: [...imageParts, { text: prompt }] },
     config: { responseMimeType: "application/json", responseSchema: contentResultSchema }
   });
@@ -225,8 +286,9 @@ const contentResultSchema = {
 };
 
 export const generateMindMap = async (content: any, mode: MindMapMode): Promise<MindMapData> => {
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: `Create a professional Mind Map following Tony Buzan's principles for: ${JSON.stringify(content)}. 
     Structure: Root node is the main topic. Child nodes are key sub-concepts with emojis. 
     Output strictly in JSON format matching the schema.`,
@@ -236,8 +298,9 @@ export const generateMindMap = async (content: any, mode: MindMapMode): Promise<
 };
 
 export const evaluateSpeech = async (base64Audio: string): Promise<SpeechEvaluation> => {
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: { parts: [{ inlineData: { data: base64Audio, mimeType: 'audio/wav' } }, { text: "Evaluate the student's speaking performance on a scale of 0-10. Provide encouraging feedback in Vietnamese." }] },
     config: { responseMimeType: "application/json", responseSchema: speechEvaluationSchema }
   });
@@ -256,8 +319,9 @@ export const generateStoryImage = async (prompt: string, style: string, ratio: I
 };
 
 export const correctWriting = async (userText: string, creativePrompt: string): Promise<any> => {
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: `Evaluate and correct this student writing: "${userText}". The topic was: "${creativePrompt}". Provide a score (0-10), feedback, fixed text, and detailed error list.`,
     config: { responseMimeType: "application/json", responseSchema: writingCorrectionSchema }
   });
@@ -265,8 +329,9 @@ export const correctWriting = async (userText: string, creativePrompt: string): 
 };
 
 export const generatePresentation = async (data: MindMapData): Promise<PresentationScript> => {
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: `Create a professional English presentation script for a student based on this Mind Map data: ${JSON.stringify(data)}. 
     Include a warm introduction, body sections for each node, and a polite conclusion. 
     Provide both English script and Vietnamese translation.`,
@@ -276,8 +341,9 @@ export const generatePresentation = async (data: MindMapData): Promise<Presentat
 };
 
 export const generateMindMapPrompt = async (content: any, mode: MindMapMode): Promise<string> => {
-  // Sử dụng callWithFallback để tự động retry với model dự phòng
-  const response = await callWithFallback({
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
     contents: `TASK: Generate a single, highly detailed English prompt for drawing a professional Tony Buzan Mind Map using AI art tools (like Midjourney or DALL-E). 
     CONTENT SOURCE: ${JSON.stringify(content)}. 
     

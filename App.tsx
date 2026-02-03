@@ -3,11 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { generateLessonPlan, fileToBase64 } from './services/geminiService';
 import { LessonPlan } from './types';
 import { VocabularySection } from './components/VocabularySection';
-import { PracticeSection } from './components/PracticeSection';
-import { MagicStory } from './components/MagicStory';
-import { InfographicPoster } from './components/InfographicPoster';
-import { MindMapTab } from './components/MindMapTab';
-import { MindMapPromptGenerator } from './components/MindMapPromptGenerator';
 import { MegaChallenge } from './components/MegaChallenge';
 import { UploadZone } from './components/UploadZone';
 import { LessonCertificate } from './components/LessonCertificate';
@@ -49,7 +44,7 @@ const MrsDungLogo = ({ className = "w-16 h-16", color = "currentColor" }: LogoPr
 );
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'planner' | 'story' | 'mindmap' | 'prompt'>('planner');
+  // Simplified - only keeping the planner/learning tab
   const [plannerMode, setPlannerMode] = useState<'topic' | 'text' | 'image'>('topic');
   const [topic, setTopic] = useState('');
   const [lessonText, setLessonText] = useState('');
@@ -58,40 +53,14 @@ function App() {
   const [lesson, setLesson] = useState<LessonPlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
-  const [listeningCorrect, setListeningCorrect] = useState(0);
+  // Removed listeningCorrect since listening section was removed
   const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [tempKey, setTempKey] = useState('');
 
-  // Logic kiểm tra mã API: LocalStorage -> Env
-  // Sử dụng lazy initialization để tránh lỗi SSR trên Vercel
-  const [apiKey, setApiKey] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('MRS_DUNG_API_KEY') || (process.env.API_KEY !== "undefined" ? process.env.API_KEY : null) || null;
-    }
-    return null;
-  });
-
-  useEffect(() => {
-    // Nếu chưa có key, hiện modal bắt buộc nhập
-    if (!apiKey) {
-      setShowKeyModal(true);
-    }
-  }, [apiKey]);
-
-  const saveKey = () => {
-    if (tempKey.trim()) {
-      localStorage.setItem('MRS_DUNG_API_KEY', tempKey.trim());
-      setApiKey(tempKey.trim());
-      setShowKeyModal(false);
-      setTempKey('');
-      window.location.reload(); // Reload để nhận key mới trong service
-    }
-  };
+  // Calculate the total number of correct answers (MegaTest only - 40 questions total)
+  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.error + megaScores.match;
 
   const handleGenerate = async () => {
-    if (!apiKey) { setShowKeyModal(true); return; }
     if (plannerMode === 'topic' && !topic.trim()) { setError("Hãy nhập chủ đề bài học con nhé!"); return; }
     if (plannerMode === 'text' && !lessonText.trim()) { setError("Hãy dán nội dung bài học vào đây!"); return; }
     if (plannerMode === 'image' && selectedFiles.length === 0) { setError("Hãy chọn ít nhất một tấm ảnh tài liệu!"); return; }
@@ -128,15 +97,11 @@ function App() {
     }
   };
 
-  // Tính tổng số câu đúng từ listening và mega scores
-  const totalCorrectCount = listeningCorrect + megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.error + megaScores.match;
+  function calculateTotalScore() {
+    return Math.round((totalCorrectCount / 40) * 10 * 10) / 10;
+  }
 
   const totalScore = calculateTotalScore();
-  const evaluation = getEvaluation(totalScore);
-
-  function calculateTotalScore() {
-    return Math.round((totalCorrectCount / 50) * 10 * 10) / 10;
-  }
 
   function getEvaluation(score: number) {
     const s = score || 0;
@@ -146,76 +111,32 @@ function App() {
     return { text: "CẦN NỖ LỰC", emoji: "💪", level: "KEEP IT UP", praise: "Đừng nản lòng con nhé, bài sau mình làm tốt hơn nào!" };
   }
 
+  const evaluation = getEvaluation(totalScore);
+
   return (
     <div className="min-h-screen bg-brand-50 flex flex-col font-serif text-slate-900">
-      {/* Modal Nhập Key */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-[100] bg-brand-900/90 backdrop-blur-xl flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl border-4 border-highlight-400 animate-bounce-in relative">
-            <MrsDungLogo className="w-20 h-20 mx-auto mb-6 bg-brand-50 rounded-2xl p-2" color="#16a34a" />
-            <h2 className="text-2xl font-black text-center mb-2 uppercase font-display">CÀI ĐẶT API KEY</h2>
-            <p className="text-slate-500 text-center mb-8 font-medium italic">"Mrs. Dung cần chìa khóa của cô để bắt đầu bài học!"</p>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-black text-brand-600 uppercase tracking-widest mb-2">Nhập mã Gemini API Key:</label>
-                <input
-                  type="password"
-                  value={tempKey}
-                  onChange={e => setTempKey(e.target.value)}
-                  placeholder="Dán mã API của cô vào đây..."
-                  className="w-full p-4 text-lg rounded-2xl border-4 border-brand-50 focus:border-brand-500 outline-none font-mono"
-                />
-              </div>
-              <div className="bg-brand-50 p-4 rounded-xl text-xs text-brand-700 font-bold leading-relaxed">
-                Lưu ý: Mã này sẽ được lưu an toàn trên máy tính này. Cô có thể lấy mã miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" className="underline text-brand-900">Google AI Studio</a>.
-              </div>
-              <div className="flex gap-4">
-                {apiKey && (
-                  <button onClick={() => setShowKeyModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase tracking-widest">Hủy</button>
-                )}
-                <button onClick={saveKey} className="flex-[2] py-4 bg-brand-600 text-white rounded-2xl font-black text-xl shadow-xl hover:bg-brand-700 uppercase tracking-tighter">Lưu & Bắt đầu</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <header className="bg-brand-700 border-b-4 border-brand-800 sticky top-0 z-50 shadow-xl">
-        <div className="max-w-[1600px] mx-auto px-6 h-24 flex items-center justify-between">
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab('planner')}>
-            <MrsDungLogo className="w-14 h-14 bg-white rounded-2xl p-1.5 shadow-lg" color="#16a34a" />
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 h-16 sm:h-24 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-4 cursor-pointer">
+            <MrsDungLogo className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl p-1 sm:p-1.5 shadow-lg" color="#16a34a" />
             <div className="flex flex-col">
-              <h1 className="text-xl md:text-3xl font-black text-highlight-400 uppercase tracking-tighter font-display">ENGLISH MRS. DUNG</h1>
-              <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] opacity-90 font-sans">English with Heart</span>
+              <h1 className="text-base sm:text-xl md:text-3xl font-black text-highlight-400 uppercase tracking-tighter font-display">ENGLISH MRS. DUNG</h1>
+              <span className="text-[8px] sm:text-[10px] font-black text-white uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-90 font-sans hidden xs:block">English with Heart</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex bg-brand-800/50 rounded-xl p-1.5 gap-1 overflow-x-auto border border-white/10">
-              {['planner', 'story', 'mindmap', 'prompt'].map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-5 py-2 rounded-lg font-black text-sm transition-all uppercase whitespace-nowrap ${activeTab === tab ? 'bg-highlight-400 text-brand-900 shadow-md scale-105' : 'text-brand-50 hover:bg-brand-600 font-sans'}`}>{tab === 'planner' ? 'HỌC TẬP' : tab === 'story' ? 'KỂ TRUYỆN' : tab === 'mindmap' ? 'MIND MAP' : 'VẼ AI'}</button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setShowKeyModal(true)}
-              className="bg-brand-900/40 text-highlight-400 px-4 py-2 rounded-lg font-black text-xs hover:bg-brand-800 transition-all border border-highlight-400/30 flex items-center gap-2"
-            >
-              <span>⚙️</span> Cài đặt API
-            </button>
-          </div>
+          {/* Navigation tabs removed - only learning feature remains */}
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-10 flex-grow w-full relative">
-        <div className={activeTab === 'planner' ? 'block' : 'hidden'}>
-          <div className="space-y-16">
+      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-10 flex-grow w-full relative">
+        <div>
+          <div className="space-y-8 sm:space-y-16">
             {!lesson ? (
-              <div className="bg-white rounded-[3rem] shadow-xl border-b-[12px] border-r-[12px] border-brand-100 p-8 md:p-16 max-w-4xl mx-auto animate-fade-in text-center relative overflow-hidden ring-4 ring-white">
+              <div className="bg-white rounded-2xl sm:rounded-[3rem] shadow-xl border-b-4 sm:border-b-[12px] border-r-4 sm:border-r-[12px] border-brand-100 p-4 sm:p-8 md:p-16 max-w-4xl mx-auto animate-fade-in text-center relative overflow-hidden ring-2 sm:ring-4 ring-white">
                 <div className="absolute top-0 left-0 w-full h-3 bg-brand-500"></div>
-                <MrsDungLogo className="w-32 h-32 mx-auto mb-8 drop-shadow-xl" color="#15803d" />
-                <h2 className="text-2xl md:text-4xl font-black text-brand-800 mb-2 uppercase tracking-tighter font-display">Let's learn English with Mrs. Dung</h2>
-                <p className="text-sm font-black text-slate-400 mb-8 uppercase italic opacity-60">"English with Heart. Success with Mrs.Dung"</p>
+                <MrsDungLogo className="w-20 h-20 sm:w-32 sm:h-32 mx-auto mb-4 sm:mb-8 drop-shadow-xl" color="#15803d" />
+                <h2 className="text-lg sm:text-2xl md:text-4xl font-black text-brand-800 mb-2 uppercase tracking-tighter font-display">Let's learn English with Mrs. Dung</h2>
+                <p className="text-xs sm:text-sm font-black text-slate-400 mb-4 sm:mb-8 uppercase italic opacity-60">"English with Heart. Success with Mrs.Dung"</p>
 
                 <div className="space-y-8 text-left">
                   <div className="flex bg-slate-100 p-2 rounded-2xl gap-2 shadow-inner">
@@ -235,33 +156,33 @@ function App() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-16 animate-fade-in">
-                <div className="text-center relative py-10 bg-white rounded-[4rem] shadow-xl border-4 border-brand-50 ring-4 ring-white overflow-hidden">
-                  <h1 className="text-4xl md:text-6xl font-black text-brand-800 uppercase font-display mb-6">{lesson.topic}</h1>
+              <div className="space-y-8 sm:space-y-16 animate-fade-in">
+                <div className="text-center relative py-6 sm:py-10 bg-white rounded-2xl sm:rounded-[4rem] shadow-xl border-2 sm:border-4 border-brand-50 ring-2 sm:ring-4 ring-white overflow-hidden">
+                  <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-brand-800 uppercase font-display mb-4 sm:mb-6 px-4 break-words">{lesson.topic}</h1>
                   <div className="flex flex-col items-center gap-4">
                     <label className="text-brand-600 font-black uppercase tracking-[0.2em] text-base font-sans">Chào mừng con:</label>
                     <input type="text" placeholder="Nhập tên của con nhé..." value={studentName} onChange={e => setStudentName(e.target.value)} className="p-4 w-full max-w-xl rounded-2xl border-4 border-brand-50 font-black text-2xl text-center outline-none bg-brand-50/50" />
                   </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-[4rem] shadow-xl border-4 border-brand-50">
+                <div className="bg-white p-3 sm:p-5 rounded-xl sm:rounded-2xl shadow-lg border border-brand-100">
                   <VocabularySection items={lesson.vocabulary} />
                 </div>
 
-                <div className="bg-highlight-400 p-8 md:p-12 rounded-[4rem] shadow-xl border-[10px] border-white ring-4 ring-highlight-300 transform -rotate-1">
-                  <h2 className="text-3xl md:text-4xl font-black text-brand-900 uppercase tracking-tighter mb-8 flex items-center gap-4">
-                    <span className="bg-white/40 p-3 rounded-2xl shadow-inner text-4xl">✨</span> NGỮ PHÁP QUAN TRỌNG
+                <div className="bg-highlight-400 p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border-4 border-white">
+                  <h2 className="text-base sm:text-xl font-bold text-brand-900 uppercase tracking-tight mb-3 sm:mb-4 flex items-center gap-2">
+                    <span className="text-xl sm:text-2xl">✨</span> Ngữ pháp quan trọng
                   </h2>
-                  <div className="bg-white/90 backdrop-blur-md p-8 md:p-12 rounded-[3rem] shadow-xl border-4 border-white">
-                    <h3 className="text-2xl md:text-4xl font-black text-brand-700 mb-4 underline decoration-highlight-400 decoration-4 underline-offset-[10px]">{lesson.grammar?.topic}</h3>
-                    <p className="text-xl md:text-2xl font-black text-slate-800 leading-relaxed italic mb-8 border-l-4 border-brand-500 pl-6">{lesson.grammar?.explanation}</p>
-                    <div className="space-y-4">
-                      <h4 className="text-lg font-black text-brand-600 uppercase tracking-widest">Ví dụ cho con:</h4>
-                      <div className="grid gap-3">
+                  <div className="bg-white/95 p-3 sm:p-5 rounded-lg sm:rounded-xl shadow-md">
+                    <h3 className="text-base sm:text-xl font-bold text-brand-700 mb-2">{lesson.grammar?.topic}</h3>
+                    <p className="text-sm sm:text-base text-slate-700 leading-relaxed mb-4 border-l-3 border-brand-500 pl-3">{lesson.grammar?.explanation}</p>
+                    <div className="space-y-2">
+                      <h4 className="text-xs sm:text-sm font-bold text-brand-600 uppercase">Ví dụ:</h4>
+                      <div className="grid gap-2">
                         {(lesson.grammar?.examples || []).map((ex, i) => (
-                          <div key={i} className="bg-brand-50 p-4 rounded-2xl border-2 border-brand-100 flex items-center gap-4">
-                            <span className="text-2xl">💎</span>
-                            <p className="text-lg md:text-xl font-black text-slate-700 italic">"{ex}"</p>
+                          <div key={i} className="bg-brand-50 p-2 sm:p-3 rounded-lg border border-brand-100 flex items-center gap-2">
+                            <span className="text-lg">💎</span>
+                            <p className="text-sm sm:text-base text-slate-700 italic">"{ex}"</p>
                           </div>
                         ))}
                       </div>
@@ -269,29 +190,28 @@ function App() {
                   </div>
                 </div>
 
-                {lesson.practice && (
-                  <div className="bg-white rounded-[4rem] shadow-xl border-[10px] border-brand-50 overflow-hidden">
-                    <div className="bg-brand-700 p-8 text-center border-b-[10px] border-brand-900 shadow-md"><h2 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight font-display">HÀNH TRÌNH LUYỆN NGHE (10 CÂU)</h2></div>
-                    <div className="p-8"><PracticeSection content={lesson.practice} onScoreUpdate={setListeningCorrect} /></div>
-                  </div>
-                )}
+                {/* Listening section removed */}
                 {lesson.practice?.megaTest && <MegaChallenge megaData={lesson.practice.megaTest} onScoresUpdate={setMegaScores} />}
 
-                <div className="text-center py-20 bg-white rounded-[4rem] shadow-xl border-4 border-brand-100 flex flex-col items-center gap-8 relative overflow-hidden">
-                  <MrsDungLogo className="w-32 h-32 drop-shadow-xl animate-bounce-slow" color="#15803d" />
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-8xl md:text-9xl font-black text-brand-600 leading-none drop-shadow-xl">{totalScore}</span>
-                      <span className="text-3xl md:text-4xl font-black text-slate-200">/10</span>
+                <div className="text-center py-8 sm:py-12 bg-white rounded-xl sm:rounded-2xl shadow-lg border border-brand-100 flex flex-col items-center gap-4 sm:gap-6 relative overflow-hidden">
+                  <MrsDungLogo className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-lg" color="#15803d" />
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl sm:text-6xl font-bold text-brand-600 leading-none">{totalScore}</span>
+                      <span className="text-xl sm:text-2xl font-bold text-slate-300">/10</span>
                     </div>
-                    <div className="text-xl font-black text-brand-500 bg-brand-50 px-6 py-1.5 rounded-full mb-3 shadow-sm">Số câu làm đúng: <span className="text-brand-700 font-black">{totalCorrectCount}/50</span> câu</div>
-                    <div className={`px-10 py-4 rounded-full font-black text-3xl shadow-xl border-b-8 transform rotate-[-2deg] ${totalScore >= 5 ? 'bg-brand-500 text-white border-brand-700' : 'bg-orange-500 text-white border-orange-700'}`}>{evaluation.emoji} {evaluation.text}</div>
+                    <div className="text-sm sm:text-base font-semibold text-brand-500 bg-brand-50 px-4 py-1 rounded-full">
+                      Số câu đúng: <span className="text-brand-700 font-bold">{totalCorrectCount}/40</span>
+                    </div>
+                    <div className={`px-6 py-2 sm:px-8 sm:py-3 rounded-full font-bold text-base sm:text-xl shadow-lg ${totalScore >= 5 ? 'bg-brand-500 text-white' : 'bg-orange-500 text-white'}`}>
+                      {evaluation.emoji} {evaluation.text}
+                    </div>
 
                     <button
                       onClick={() => setShowCertificate(true)}
-                      className="mt-6 px-12 py-5 bg-emerald-500 text-white rounded-[2rem] font-black text-2xl shadow-xl hover:bg-emerald-400 transform hover:scale-105 transition-all border-b-8 border-emerald-700 active:border-b-0 active:translate-y-1 uppercase tracking-tighter"
+                      className="mt-4 px-6 py-3 sm:px-8 sm:py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm sm:text-base shadow-lg hover:bg-emerald-400 transition-all"
                     >
-                      📜 XUẤT CHỨNG NHẬN KẾT QUẢ
+                      📜 Xuất chứng nhận
                     </button>
                   </div>
                 </div>
@@ -307,14 +227,12 @@ function App() {
                   />
                 )}
 
-                <InfographicPoster lesson={lesson} />
+                {/* InfographicPoster removed */}
               </div>
             )}
           </div>
         </div>
-        <div className={activeTab === 'story' ? 'block' : 'hidden'}><MagicStory /></div>
-        <div className={activeTab === 'mindmap' ? 'block' : 'hidden'}><MindMapTab /></div>
-        <div className={activeTab === 'prompt' ? 'block' : 'hidden'}><MindMapPromptGenerator /></div>
+        {/* Story, MindMap and Prompt tabs removed */}
       </main>
 
       <footer className="bg-brand-900 text-white border-t-[10px] border-brand-800 pt-20 pb-10">
