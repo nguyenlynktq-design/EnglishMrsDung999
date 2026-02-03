@@ -319,71 +319,185 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
     * "example": English example sentence (EXACTLY as shown in source)
     * "sentenceMeaning": Vietnamese translation of example (EXACTLY as shown in source, lowercase)
   
-  ===== MEGATEST EXERCISE REQUIREMENTS (CHẤT LƯỢNG CHUYÊN GIA) =====
+  ===== MEGATEST EXERCISE REQUIREMENTS (CHẤT LƯỢNG CHUYÊN GIA - 20 NĂM KINH NGHIỆM) =====
   
-  🎯 GENERAL QUALITY RULES:
-  - Act as a PROFESSIONAL ENGLISH TEACHER creating PERFECT exercises
-  - Each question MUST test a specific grammar rule from the lesson
-  - Correct answer MUST be 100% unambiguous - no multiple correct answers
-  - All distractors (wrong options) MUST be clearly incorrect grammatically
-  - NEVER create questions with ambiguous or debatable answers
+  🎓 YOU ARE A PROFESSIONAL ENGLISH TEACHER WITH 20 YEARS EXPERIENCE
+  You must create exercises with 100% grammatical accuracy. Every answer key must be verified.
+  
+  ===== FUNDAMENTAL GRAMMAR RULES CHECKLIST =====
+  Before creating ANY exercise, verify these 15 grammar rules:
+  
+  1. SUBJECT-VERB AGREEMENT:
+     - He/She/It + V-s/es: "She walks" ✓, "She walk" ❌
+     - I/You/We/They + V: "They walk" ✓, "They walks" ❌
+     - There is + singular, There are + plural
+  
+  2. VERB vs NOUN FORMS (CRITICAL!):
+     - VERB → NOUN examples:
+       * complain → complaint ("make a complaint" ✓, "make a complain" ❌)
+       * advise → advice ("give advice" ✓, "give advise" ❌)
+       * believe → belief ("have a belief" ✓)
+       * choose → choice ("make a choice" ✓)
+       * succeed → success ("achieve success" ✓)
+       * decide → decision ("make a decision" ✓)
+       * explain → explanation ("give an explanation" ✓)
+       * describe → description ("write a description" ✓)
+  
+  3. TENSE CONSISTENCY:
+     - Past markers (yesterday, last week, ago) → Past tense
+     - Present markers (every day, usually, always) → Present tense
+     - Now, at the moment → Present continuous
+     - Since, for + duration → Present perfect
+  
+  4. ARTICLES (a/an/the):
+     - a + consonant sound: "a book", "a university" (yoo-sound)
+     - an + vowel sound: "an apple", "an hour" (silent h)
+     - the = specific/known item
+     - No article: plural general, uncountable general
+  
+  5. PREPOSITIONS:
+     - listen TO music ✓ (not "listen music")
+     - depend ON ✓ (not "depend of")
+     - interested IN ✓ (not "interested on")
+     - good AT ✓ (not "good in")
+     - arrive AT (place) / arrive IN (city/country)
+     - on Monday, in January, at 5 o'clock
+  
+  6. PRONOUN FORMS:
+     - Subject: I, you, he, she, it, we, they
+     - Object: me, you, him, her, it, us, them
+     - Possessive adj: my, your, his, her, its, our, their
+     - Possessive pronoun: mine, yours, his, hers, ours, theirs
+     - "Him went home" ❌ → "He went home" ✓
+  
+  7. COMPARATIVE & SUPERLATIVE:
+     - Short adj: -er/-est (big → bigger → biggest)
+     - Long adj: more/most (beautiful → more beautiful)
+     - NEVER combine: "more bigger" ❌, "most biggest" ❌
+     - Irregular: good → better → best, bad → worse → worst
+  
+  8. ADVERB WORD ORDER:
+     - Frequency adverbs (always, usually, often, sometimes, never):
+       * Before main verb: "I always eat" ✓
+       * After BE verb: "She is always late" ✓, "She always is late" ❌
+  
+  9. INFINITIVE vs GERUND:
+     - want/need/decide/hope + TO + V: "want to go" ✓
+     - enjoy/finish/avoid/mind + V-ing: "enjoy swimming" ✓
+     - stop + to (purpose) vs stop + -ing (end activity)
+  
+  10. COUNTABLE vs UNCOUNTABLE:
+      - Uncountable: water, information, advice, furniture, news, homework
+      - "informations" ❌, "advices" ❌, "furnitures" ❌
+      - much/little + uncountable, many/few + countable
+  
+  11. RELATIVE PRONOUNS:
+      - who/that = people, which/that = things
+      - whose = possession, where = place, when = time
+  
+  12. CONDITIONALS:
+      - Type 0: If + present, present (general truth)
+      - Type 1: If + present, will + V (real future)
+      - Type 2: If + past, would + V (unreal present)
+      - Type 3: If + had + PP, would have + PP (unreal past)
+  
+  13. MODAL VERBS:
+      - Modal + base verb: "can swim" ✓, "can swims" ❌, "can to swim" ❌
+      - must/should/can/could/may/might/will/would
+  
+  14. PASSIVE VOICE:
+      - be + past participle: "is written", "was built", "has been done"
+      - "The book was wrote" ❌ → "The book was written" ✓
+  
+  15. THERE vs THEIR vs THEY'RE:
+      - there = location/existence, their = possession, they're = they are
+  
+  ===== EXERCISE-SPECIFIC REQUIREMENTS =====
   
   📝 MULTIPLE CHOICE (multipleChoice):
   - "question": A sentence with ONE blank using "____" for the gap
-  - "options": 4 options [A, B, C, D] - only ONE correct
+  - "options": 4 options [A, B, C, D] - only ONE grammatically correct
   - "correctAnswer": Index of correct option (0-3)
-  - "explanation": 
-    * If CORRECT: Vietnamese encouragement like "Tuyệt vời! Con giỏi lắm! Đây là vị trí đúng của trạng từ tần suất."
-    * If WRONG: Vietnamese detailed explanation like "Đáp án đúng là B vì trạng từ tần suất 'always' phải đứng trước động từ thường. Ví dụ: I always eat breakfast."
+  - ⚠️ VERIFY: Check the correct answer against grammar rules above
+  - ⚠️ VERIFY: Ensure 3 wrong options are clearly grammatically incorrect
+  - "explanation": Vietnamese explanation with grammar rule reference
+  
+  MULTIPLE CHOICE VALIDATION EXAMPLE:
+  Question: "She ____ to school every day."
+  Options: ["go", "goes", "going", "went"]
+  ✓ Check: Subject "She" (3rd person singular) + "every day" (present habit)
+  ✓ Rule 1: She + V-s = "goes"
+  ✓ correctAnswer: 1 (index of "goes")
 
   📝 FILL-IN-THE-BLANK (fillBlank):
-  ⚠️ CRITICAL RULE: ONLY 1 WORD ANSWER, ONLY 1 BLANK
-  - "question": Câu hoàn chỉnh với CHỈ MỘT ô trống "____"
-    * ĐÚNG: "She ____ to school every day." (đáp án: walks)
-    * ĐÚNG: "I ____ playing football." (đáp án: am)
-    * SAI: "She ____ ____ milk" (KHÔNG được dùng 2 ô trống)
-  - "correctAnswer": PHẢI LÀ 1 TỪ DUY NHẤT (không được 2+ từ như "am eating", "does listen")
-  - Câu hỏi PHẢI đúng ngữ pháp hoàn chỉnh
-  - Ví dụ tốt:
-    * "He usually ____ to music." → "listens" (1 từ)
-    * "They ____ studying now." → "are" (1 từ)
-    * "She ____ breakfast every morning." → "eats" (1 từ)
+  ⚠️ CRITICAL: ONLY 1 WORD ANSWER, ONLY 1 BLANK
+  - "question": Complete sentence with exactly ONE blank "____"
+  - "correctAnswer": EXACTLY 1 WORD (no phrases like "am eating")
+  - ⚠️ VERIFY: The completed sentence must be 100% grammatically correct
+  - ⚠️ VERIFY: No alternative correct answers possible
+  
+  FILL-BLANK VALIDATION EXAMPLE:
+  Question: "He usually ____ to music." → Answer: "listens"
+  ✓ Check: "He" (3rd person) + "usually" (present habit) = present simple
+  ✓ Rule 1: He + V-s = "listens" ✓
+  ✓ Complete sentence: "He usually listens to music." ✓ Grammatically perfect
   
   📝 ERROR IDENTIFICATION (errorId):
-  - "sentence": Complete sentence with FOUR parts marked (A), (B), (C), (D)
-    Format: "She (A) often (B) is (C) tired (D) after work."
-    The parts should be underlined/marked words, NOT the whole sentence split
-  - "options": ["(A) often", "(B) is", "(C) tired", "(D) after"] - the 4 marked parts
-  - "correctOptionIndex": Index (0-3) of the WRONG/ERROR option
-  - "explanation": Vietnamese explanation of WHY it's wrong and HOW to fix it
-    Example: "Lỗi ở (B) 'is'. Đúng phải là 'She is often tired' vì trạng từ tần suất đứng sau động từ TO BE."
-
+  ⚠️ MOST CRITICAL - THIS IS WHERE MISTAKES HAPPEN MOST!
+  
+  STEP-BY-STEP VERIFICATION PROCESS:
+  1. Write the sentence with marked parts (A), (B), (C), (D)
+  2. For EACH part, ask: "Does this violate any of the 15 grammar rules?"
+  3. Mark ONLY the part that clearly violates a grammar rule
+  4. The other 3 parts MUST be grammatically perfect
+  5. Write explanation citing the specific rule violated
+  
+  FORMAT:
+  - "sentence": "I (A) need (B) to make (C) a complain (D) about the service."
+  - "options": ["(A) need", "(B) to make", "(C) a complain", "(D) about the service"]
+  - "correctOptionIndex": 2 (because C violates Rule 2: verb/noun form)
+  - "explanation": "Lỗi ở (C). 'complain' là ĐỘNG TỪ, phải dùng DANH TỪ 'complaint'. Cấu trúc đúng: make a complaint (đưa ra lời phàn nàn)."
+  
+  ERROR ID VALIDATION EXAMPLE:
+  Sentence: "I (A) need (B) to make (C) a complain (D) about the service."
+  - (A) "need": ✓ Rule 1: "I need" - correct subject-verb
+  - (B) "to make": ✓ Rule 9: "need to + V" - correct infinitive
+  - (C) "a complain": ❌ Rule 2: "complain" is VERB, need NOUN "complaint"
+  - (D) "about the service": ✓ Rule 5: "about" is correct preposition
+  → correctOptionIndex = 2 (C is the ONLY error)
+  
+  ❌ COMMON MISTAKES TO AVOID:
+  - Don't mark a correct phrase as error
+  - Don't confuse which part contains the actual error
+  - Double-check: "about the service" is NOT an error!
 
   📝 SCRAMBLE (scramble):
-  ⚠️ CRITICAL QUALITY RULE FOR CEFR ALIGNMENT:
-  - "scrambled": Array of EXACTLY the same words as in correctSentence, just shuffled
-    * EVERY word in correctSentence MUST appear in scrambled array
-    * NO extra words, NO missing words
-    * Include articles (a, an, the), pronouns, prepositions - ALL words
-    * Example: correctSentence = "A tiger is stronger than a lion."
-      → scrambled = ["stronger", "a", "lion", "A", "is", "than", "tiger"] ✓
-      → scrambled = ["than", "is", "a", "lion", "stronger", "tiger"] ✗ (missing "A")
-  - "correctSentence": The ONLY valid arrangement of the scrambled words
-    * Must be grammatically unambiguous - only ONE correct order
-    * Capitalize first letter, end with period
-  - "translation": Vietnamese translation (lowercase, natural Vietnamese)
-  - VERIFICATION: Before submitting, check that sorting scrambled alphabetically and 
-    sorting correctSentence.split(' ') alphabetically gives IDENTICAL arrays
+  - "scrambled": EXACT same words as correctSentence, just shuffled
+  - "correctSentence": The ONLY grammatically valid arrangement
+  - ⚠️ VERIFY: Count words - scrambled array must have same count as sentence words
+  - ⚠️ VERIFY: The correct sentence follows all grammar rules
+  - "translation": Natural Vietnamese translation
 
   MANDATORY REQUIREMENTS:
-  1. Extract 100% of the key vocabulary and grammar points from the source.
-  2. Create EXACTLY 10 Multiple Choice Questions (MegaTest).
-  3. Create EXACTLY 10 Scramble Questions (MegaTest).
-  4. Create EXACTLY 10 Fill-in-the-blank Questions (MegaTest).
-  5. Create EXACTLY 10 Error Identification Questions (MegaTest).
+  1. Extract 100% of vocabulary and grammar from source
+  2. Create EXACTLY 10 Multiple Choice Questions
+  3. Create EXACTLY 10 Scramble Questions
+  4. Create EXACTLY 10 Fill-in-the-blank Questions
+  5. Create EXACTLY 10 Error Identification Questions
   NOTE: Do NOT create Listening Questions.
   
-  ⚠️ QUALITY CHECK: Before finalizing, verify EVERY question has ONE clear correct answer.
+  ===== FINAL QUALITY ASSURANCE =====
+  Before submitting, verify EACH question:
+  
+  ✅ CHECKLIST FOR EVERY QUESTION:
+  □ Does the correct answer follow the 15 grammar rules?
+  □ Is there only ONE possible correct answer?
+  □ For Error ID: Did I verify EACH option (A), (B), (C), (D)?
+  □ For Error ID: Is the marked error truly violating a grammar rule?
+  □ For Error ID: Are the other 3 options grammatically correct?
+  □ Is the explanation accurate and educational?
+  
+  ⚠️ IF UNSURE: Re-read the 15 grammar rules and apply them systematically
   
   All content must align strictly with the source provided. Do not invent unrelated topics.`;
 
