@@ -171,6 +171,23 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
             {(megaData.errorId || []).map((q, idx) => {
               const userAns = answers[q.id];
               const isCorrect = userAns === q.correctOptionIndex;
+
+              // Fallback: Parse options from sentence if options array is empty
+              // Matches patterns like "(A) more", "(B) big", etc.
+              let displayOptions = q.options || [];
+              if (displayOptions.length === 0 && q.sentence) {
+                const regex = /\(([A-D])\)\s*([^(]+?)(?=\s*\([A-D]\)|\.?\s*$)/gi;
+                const matches = [...q.sentence.matchAll(regex)];
+                if (matches.length > 0) {
+                  displayOptions = matches.map(m => `(${m[1]}) ${m[2].trim()}`);
+                }
+              }
+
+              // If still no options, create default A/B/C/D buttons
+              if (displayOptions.length === 0) {
+                displayOptions = ['(A)', '(B)', '(C)', '(D)'];
+              }
+
               return (
                 <div key={q.id} className="bg-white p-4 sm:p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100 flex flex-col gap-6">
                   <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
@@ -180,27 +197,27 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
                     </p>
                     <p className="text-center text-sm text-slate-500 font-medium mb-4">👇 Chọn phần SAI trong câu:</p>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      {(q.options || []).map((opt, i) => (
+                      {displayOptions.map((opt, i) => (
                         <button
                           key={i}
                           onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctOptionIndex); }}
                           disabled={submitted[q.id]}
                           className={`min-h-[56px] p-3 sm:p-4 rounded-xl border-2 font-black text-left text-base sm:text-lg transition-all flex items-center gap-2 sm:gap-3 active:scale-95 ${submitted[q.id]
-                              ? i === q.correctOptionIndex
-                                ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
-                                : userAns === i
-                                  ? 'bg-red-100 border-red-500 text-red-700'
-                                  : 'bg-slate-50 border-slate-100 opacity-40'
-                              : 'bg-white border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:bg-brand-100'
+                            ? i === q.correctOptionIndex
+                              ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
+                              : userAns === i
+                                ? 'bg-red-100 border-red-500 text-red-700'
+                                : 'bg-slate-50 border-slate-100 opacity-40'
+                            : 'bg-white border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:bg-brand-100'
                             }`}
                         >
                           <span className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${submitted[q.id]
-                              ? i === q.correctOptionIndex
-                                ? 'bg-green-500 text-white'
-                                : userAns === i
-                                  ? 'bg-red-500 text-white'
-                                  : 'bg-slate-200 text-slate-400'
-                              : 'bg-brand-500 text-white'
+                            ? i === q.correctOptionIndex
+                              ? 'bg-green-500 text-white'
+                              : userAns === i
+                                ? 'bg-red-500 text-white'
+                                : 'bg-slate-200 text-slate-400'
+                            : 'bg-brand-500 text-white'
                             }`}>
                             {String.fromCharCode(65 + i)}
                           </span>
@@ -215,7 +232,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
                         <span className="text-3xl">{isCorrect ? '🏆' : '💡'}</span>
                         <div>
                           <p className="font-black text-sm mb-1 text-slate-800">
-                            {isCorrect ? 'Chính xác! Con tìm ra lỗi sai rồi!' : `Chưa đúng! Lỗi sai là ở: ${q.options[q.correctOptionIndex]}`}
+                            {isCorrect ? 'Chính xác! Con tìm ra lỗi sai rồi!' : `Chưa đúng! Lỗi sai là ở: ${displayOptions[q.correctOptionIndex] || 'N/A'}`}
                           </p>
                           <p className="text-xs italic text-slate-600 leading-relaxed">{q.explanation}</p>
                         </div>

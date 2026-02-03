@@ -89,57 +89,26 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// ===== TTS SYSTEM: Mobile-First with Immediate Playback =====
-// Uses Web Speech API with mobile-specific fixes
+// ===== TTS SYSTEM: Mobile-First with IMMEDIATE Playback =====
+// Uses Web Speech API with SYNCHRONOUS speak() for mobile compatibility
+// CRITICAL: On Android, speak() MUST be called synchronously in the click handler
 
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 let cachedVoice: SpeechSynthesisVoice | null = null;
-let voicesLoaded = false;
+let ttsInitialized = false;
 
-// Get available voices
-const loadVoices = (): Promise<SpeechSynthesisVoice[]> => {
-  return new Promise((resolve) => {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      voicesLoaded = true;
-      resolve(voices);
-      return;
-    }
-
-    // Wait for voices to load
-    const checkVoices = () => {
-      const v = window.speechSynthesis.getVoices();
-      if (v.length > 0) {
-        voicesLoaded = true;
-        resolve(v);
-      }
-    };
-
-    window.speechSynthesis.onvoiceschanged = checkVoices;
-
-    // Also poll because onvoiceschanged doesn't always fire on mobile
-    const interval = setInterval(() => {
-      const v = window.speechSynthesis.getVoices();
-      if (v.length > 0) {
-        clearInterval(interval);
-        voicesLoaded = true;
-        resolve(v);
-      }
-    }, 100);
-
-    // Timeout after 2 seconds
-    setTimeout(() => {
-      clearInterval(interval);
-      resolve(window.speechSynthesis.getVoices());
-    }, 2000);
-  });
+// Get voices SYNCHRONOUSLY - do not await
+const getVoicesSync = (): SpeechSynthesisVoice[] => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return [];
+  return window.speechSynthesis.getVoices();
 };
 
-// Get the best English voice
+// Get the best English voice from available voices
 const getBestVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
   if (cachedVoice && voices.includes(cachedVoice)) return cachedVoice;
+  if (!voices || voices.length === 0) return null;
 
-  // Priority: Google > Microsoft > Native
+  // Priority: Google > Microsoft > Native English
   const priorities = [
     (v: SpeechSynthesisVoice) => v.name.includes('Google') && v.lang.startsWith('en'),
     (v: SpeechSynthesisVoice) => v.name.includes('Microsoft') && v.lang.startsWith('en'),
@@ -155,94 +124,145 @@ const getBestVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | nu
     }
   }
 
-  return voices[0] || null;
+  cachedVoice = voices[0];
+  return voices[0];
+};
+
+// Pre-load voices in background (non-blocking)
+const preloadVoices = () => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+  // Try to get voices immediately
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    getBestVoice(voices); // Cache the best voice
+    return;
+  }
+
+  // Listen for voices to become available
+  window.speechSynthesis.onvoiceschanged = () => {
+    const v = window.speechSynthesis.getVoices();
+    if (v.length > 0) {
+      getBestVoice(v); // Cache the best voice
+    }
+  };
+};
+
+// Initialize TTS - call this on first user interaction (e.g., page touch)
+export const initTTSOnUserInteraction = (): void => {
+  if (ttsInitialized) return;
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+  ttsInitialized = true;
+
+  // Warm up the speech synthesis engine with a silent utterance
+  // This tricks mobile browsers into allowing future speech
+  try {
+    const warmup = new SpeechSynthesisUtterance('');
+    warmup.volume = 0;
+    warmup.rate = 10; // Fast to complete quickly
+    window.speechSynthesis.speak(warmup);
+    window.speechSynthesis.cancel(); // Cancel immediately
+  } catch (e) {
+    // Ignore errors during warmup
+  }
+
+  // Pre-cache voices
+  preloadVoices();
 };
 
 // Pre-load voices on page load
 if (typeof window !== 'undefined' && window.speechSynthesis) {
-  loadVoices();
+  preloadVoices();
+
+  // Also try to init on first touch/click anywhere
+  const initOnInteraction = () => {
+    initTTSOnUserInteraction();
+    document.removeEventListener('touchstart', initOnInteraction);
+    document.removeEventListener('click', initOnInteraction);
+  };
+  document.addEventListener('touchstart', initOnInteraction, { passive: true });
+  document.addEventListener('click', initOnInteraction, { passive: true });
 }
 
-// Main TTS function - IMMEDIATE playback for mobile
-export const playGeminiTTS = async (text: string): Promise<void> => {
+// Main TTS function - FULLY SYNCHRONOUS for mobile compatibility
+// NO AWAITS before speak() - this is critical for Android
+export const playGeminiTTS = (text: string): void => {
   // Check availability
   if (typeof window === 'undefined' || !window.speechSynthesis) {
     console.warn('Speech synthesis not available');
     return;
   }
 
-  // Clean text
-  const cleanText = text.trim().replace(/[^\w\s.,!?'-]/g, '');
+  // Clean text - keep only speakable characters
+  const cleanText = text.trim().replace(/[^\w\s.,!?'"-]/g, '');
   if (!cleanText) return;
 
-  // CRITICAL: Cancel any existing speech FIRST (fixes mobile issues)
+  // CRITICAL: Cancel any existing speech FIRST
   window.speechSynthesis.cancel();
   currentUtterance = null;
 
-  // Small delay after cancel to ensure it's processed (mobile fix)
-  await new Promise(r => setTimeout(r, 50));
+  // Create utterance IMMEDIATELY - no delays
+  try {
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    currentUtterance = utterance;
 
-  // Load voices
-  const voices = await loadVoices();
+    // Get voices synchronously - use cached or whatever is available
+    const voices = getVoicesSync();
+    const voice = getBestVoice(voices);
+    if (voice) {
+      utterance.voice = voice;
+    }
 
-  return new Promise((resolve) => {
-    try {
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      currentUtterance = utterance;
+    // Settings for clear pronunciation
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
 
-      // Set voice
-      const voice = getBestVoice(voices);
-      if (voice) {
-        utterance.voice = voice;
+    // Event handlers
+    utterance.onend = () => {
+      currentUtterance = null;
+    };
+
+    utterance.onerror = (e) => {
+      // Don't log 'interrupted' errors - they're normal when canceling
+      if (e.error !== 'interrupted') {
+        console.warn('TTS error:', e.error);
+      }
+      currentUtterance = null;
+    };
+
+    // SPEAK IMMEDIATELY - NO DELAYS!
+    window.speechSynthesis.speak(utterance);
+
+    // Mobile Chrome/Safari fix: resume if browser pauses speech
+    // Check every 100ms and resume if paused
+    let resumeAttempts = 0;
+    const mobileResumeFix = setInterval(() => {
+      resumeAttempts++;
+
+      // Stop checking after speech ends or 30 seconds
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+        clearInterval(mobileResumeFix);
+        return;
       }
 
-      // Settings for clear pronunciation
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-
-      // Event handlers
-      utterance.onend = () => {
-        currentUtterance = null;
-        resolve();
-      };
-
-      utterance.onerror = (e) => {
-        console.warn('TTS error:', e.error);
-        currentUtterance = null;
-        resolve();
-      };
-
-      // SPEAK IMMEDIATELY
-      window.speechSynthesis.speak(utterance);
-
-      // Mobile Chrome/Safari fix: resume if paused
-      // This is crucial for mobile browsers that pause speech
-      const mobileResumeFix = setInterval(() => {
-        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-          clearInterval(mobileResumeFix);
-          return;
-        }
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-      }, 100);
-
-      // Cleanup timer after 30 seconds max
-      setTimeout(() => {
+      if (resumeAttempts > 300) { // 30 seconds max
         clearInterval(mobileResumeFix);
-        if (currentUtterance === utterance) {
-          currentUtterance = null;
-          resolve();
-        }
-      }, 30000);
+        currentUtterance = null;
+        return;
+      }
 
-    } catch (e) {
-      console.error('TTS Error:', e);
-      resolve();
-    }
-  });
+      // Resume if paused (happens on some Android devices)
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }, 100);
+
+  } catch (e) {
+    console.error('TTS Error:', e);
+  }
 };
 
 // Stop any playing audio
@@ -338,10 +358,22 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   - "explanation": Vietnamese explanation of WHY it's wrong and HOW to fix it
     Example: "Lỗi ở (B) 'is'. Đúng phải là 'She is often tired' vì trạng từ tần suất đứng sau động từ TO BE."
 
+
   📝 SCRAMBLE (scramble):
-  - "scrambled": Array of words to arrange (shuffled)
-  - "correctSentence": The properly ordered sentence
-  - "translation": Vietnamese translation of the correct sentence
+  ⚠️ CRITICAL QUALITY RULE FOR CEFR ALIGNMENT:
+  - "scrambled": Array of EXACTLY the same words as in correctSentence, just shuffled
+    * EVERY word in correctSentence MUST appear in scrambled array
+    * NO extra words, NO missing words
+    * Include articles (a, an, the), pronouns, prepositions - ALL words
+    * Example: correctSentence = "A tiger is stronger than a lion."
+      → scrambled = ["stronger", "a", "lion", "A", "is", "than", "tiger"] ✓
+      → scrambled = ["than", "is", "a", "lion", "stronger", "tiger"] ✗ (missing "A")
+  - "correctSentence": The ONLY valid arrangement of the scrambled words
+    * Must be grammatically unambiguous - only ONE correct order
+    * Capitalize first letter, end with period
+  - "translation": Vietnamese translation (lowercase, natural Vietnamese)
+  - VERIFICATION: Before submitting, check that sorting scrambled alphabetically and 
+    sorting correctSentence.split(' ') alphabetically gives IDENTICAL arrays
 
   MANDATORY REQUIREMENTS:
   1. Extract 100% of the key vocabulary and grammar points from the source.
