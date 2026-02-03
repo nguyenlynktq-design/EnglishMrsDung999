@@ -2,9 +2,79 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { LessonPlan, MindMapData, MindMapMode, PresentationScript, ContentResult, CharacterProfile, AppMode, ImageRatio, SpeechEvaluation } from "../types";
 
-// Use the API Key exclusively from the environment variable as per guidelines
+// ===== API KEY MANAGEMENT =====
+// Priority: localStorage > environment variable
+const API_KEY_STORAGE = 'mrs_dung_api_key';
+const MODEL_STORAGE = 'mrs_dung_selected_model';
+
+// Model fallback order as per AI_INSTRUCTIONS.md
+// Default: gemini-3-pro-preview
+// Fallback: gemini-3-flash-preview → gemini-3-pro-preview → gemini-2.5-flash
+export const AVAILABLE_MODELS = [
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', isDefault: true },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+];
+
+export const getApiKey = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(API_KEY_STORAGE);
+  }
+  return null;
+};
+
+export const setApiKey = (key: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(API_KEY_STORAGE, key);
+  }
+};
+
+export const getSelectedModel = (): string => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(MODEL_STORAGE) || AVAILABLE_MODELS[0].id;
+  }
+  return AVAILABLE_MODELS[0].id;
+};
+
+export const setSelectedModel = (modelId: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(MODEL_STORAGE, modelId);
+  }
+};
+
+export const hasApiKey = (): boolean => {
+  return !!getApiKey();
+};
+
+// Create AI instance with API key from localStorage
 const getAI = () => {
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error('API_KEY_REQUIRED: Vui lòng nhập API key để sử dụng ứng dụng');
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+// Retry with model fallback
+export const callWithFallback = async <T>(
+  fn: (model: string) => Promise<T>,
+  startModelIndex: number = 0
+): Promise<T> => {
+  const models = AVAILABLE_MODELS.slice(startModelIndex);
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    try {
+      return await fn(model.id);
+    } catch (error: any) {
+      lastError = error;
+      console.warn(`Model ${model.id} failed, trying next...`, error.message);
+      // Continue to next model
+    }
+  }
+
+  // All models failed
+  throw lastError || new Error('Tất cả các model đều thất bại');
 };
 
 export const fileToBase64 = (file: File): Promise<string> => {
@@ -229,7 +299,7 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   inputParts.push({ text: prompt });
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: getSelectedModel(),
     contents: { parts: inputParts },
     config: { responseMimeType: "application/json", responseSchema: lessonSchema }
   });
@@ -251,7 +321,7 @@ export const analyzeImageAndCreateContent = async (images: string[], mimeType: s
   Character context: ${char.promptContext}.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: getSelectedModel(),
     contents: { parts: [...imageParts, { text: prompt }] },
     config: { responseMimeType: "application/json", responseSchema: contentResultSchema }
   });

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { generateLessonPlan, fileToBase64 } from './services/geminiService';
+import { generateLessonPlan, fileToBase64, getApiKey, setApiKey, hasApiKey, AVAILABLE_MODELS, getSelectedModel, setSelectedModel } from './services/geminiService';
 import { LessonPlan } from './types';
 import { VocabularySection } from './components/VocabularySection';
 import { MegaChallenge } from './components/MegaChallenge';
@@ -57,10 +57,44 @@ function App() {
   const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
 
+  // API Key & Settings Management
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [selectedModelId, setSelectedModelId] = useState(AVAILABLE_MODELS[0].id);
+  const [apiKeyValid, setApiKeyValid] = useState(false);
+
+  // Check API key on mount
+  useEffect(() => {
+    const key = getApiKey();
+    if (key) {
+      setApiKeyInput(key);
+      setApiKeyValid(true);
+    } else {
+      setShowSettings(true); // Show modal if no API key
+    }
+    setSelectedModelId(getSelectedModel());
+  }, []);
+
+  const handleSaveSettings = () => {
+    if (apiKeyInput.trim()) {
+      setApiKey(apiKeyInput.trim());
+      setSelectedModel(selectedModelId);
+      setApiKeyValid(true);
+      setShowSettings(false);
+    }
+  };
+
   // Calculate the total number of correct answers (MegaTest only - 40 questions total)
   const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.error + megaScores.match;
 
   const handleGenerate = async () => {
+    // Check API key first
+    if (!hasApiKey()) {
+      setShowSettings(true);
+      setError("Vui lòng nhập API Key trước khi sử dụng!");
+      return;
+    }
+
     if (plannerMode === 'topic' && !topic.trim()) { setError("Hãy nhập chủ đề bài học con nhé!"); return; }
     if (plannerMode === 'text' && !lessonText.trim()) { setError("Hãy dán nội dung bài học vào đây!"); return; }
     if (plannerMode === 'image' && selectedFiles.length === 0) { setError("Hãy chọn ít nhất một tấm ảnh tài liệu!"); return; }
@@ -124,9 +158,85 @@ function App() {
               <span className="text-[8px] sm:text-[10px] font-black text-white uppercase tracking-[0.1em] sm:tracking-[0.2em] opacity-90 font-sans hidden xs:block">English with Heart</span>
             </div>
           </div>
-          {/* Navigation tabs removed - only learning feature remains */}
+
+          {/* Settings Button */}
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 px-2 sm:px-3 py-1 sm:py-2 rounded-lg transition-all"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-white text-xs sm:text-sm font-bold hidden sm:block">API Key</span>
+            {!apiKeyValid && <span className="text-red-400 text-[10px] sm:text-xs font-bold">Chưa có key!</span>}
+          </button>
         </div>
       </header>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-brand-800">⚙️ Thiết lập API Key</h2>
+              {apiKeyValid && (
+                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">🔑 API Key</label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Nhập API key của bạn..."
+                  className="w-full p-3 border-2 border-brand-200 rounded-xl focus:border-brand-500 outline-none"
+                />
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-500 text-xs font-bold hover:underline mt-1 inline-block"
+                >
+                  👉 Lấy API key miễn phí tại đây
+                </a>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">🤖 Chọn Model AI</label>
+                <div className="grid gap-2">
+                  {AVAILABLE_MODELS.map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => setSelectedModelId(model.id)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${selectedModelId === model.id
+                        ? 'border-brand-500 bg-brand-50 text-brand-700'
+                        : 'border-slate-200 hover:border-brand-300'
+                        }`}
+                    >
+                      <span className="font-bold">{model.name}</span>
+                      {model.isDefault && <span className="ml-2 text-xs bg-brand-500 text-white px-2 py-0.5 rounded">Mặc định</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveSettings}
+              disabled={!apiKeyInput.trim()}
+              className="w-full py-3 bg-brand-500 text-white rounded-xl font-bold text-lg hover:bg-brand-600 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+            >
+              💾 Lưu cài đặt
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-10 flex-grow w-full relative">
         <div>
