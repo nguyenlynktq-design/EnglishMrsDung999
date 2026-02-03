@@ -298,12 +298,16 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   inputParts.push(...imageParts);
   inputParts.push({ text: prompt });
 
-  const response = await ai.models.generateContent({
-    model: getSelectedModel(),
-    contents: { parts: inputParts },
-    config: { responseMimeType: "application/json", responseSchema: lessonSchema }
+  // Use fallback mechanism - automatically retry with next model if current fails
+  return callWithFallback(async (modelId: string) => {
+    console.log(`🤖 Đang thử với model: ${modelId}`);
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: { parts: inputParts },
+      config: { responseMimeType: "application/json", responseSchema: lessonSchema }
+    });
+    return safeJsonParse<LessonPlan>(response.text);
   });
-  return safeJsonParse<LessonPlan>(response.text);
 };
 
 export const analyzeImageAndCreateContent = async (images: string[], mimeType: string, char: CharacterProfile, mode: AppMode, customPrompt?: string, topic?: string, text?: string): Promise<ContentResult> => {
