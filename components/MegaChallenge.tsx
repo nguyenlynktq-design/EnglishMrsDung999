@@ -172,16 +172,39 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
               const userAns = answers[q.id];
               const isCorrect = userAns === q.correctOptionIndex;
               return (
-                <div key={q.id} className="bg-white p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100 flex flex-col gap-6">
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                <div key={q.id} className="bg-white p-4 sm:p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100 flex flex-col gap-6">
+                  <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
                     <p className="text-slate-400 font-black uppercase text-[10px] mb-3 tracking-widest text-center">TÌM LỖI SAI CÂU {idx + 1}:</p>
-                    <p className="text-xl md:text-2xl font-black text-slate-800 text-center mb-8 leading-relaxed px-2">
+                    <p className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 text-center mb-6 leading-relaxed px-2">
                       {q.sentence}
                     </p>
-                    <div className="flex flex-wrap gap-x-6 gap-y-8 items-center justify-center border-t border-dashed border-slate-200 pt-6">
+                    <p className="text-center text-sm text-slate-500 font-medium mb-4">👇 Chọn phần SAI trong câu:</p>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       {(q.options || []).map((opt, i) => (
-                        <button key={i} onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctOptionIndex); }} disabled={submitted[q.id]} className={`text-2xl md:text-3xl font-black transition-all relative ${submitted[q.id] ? (i === q.correctOptionIndex ? 'text-green-600 scale-105' : userAns === i ? 'text-rose-500 opacity-50' : 'opacity-20 grayscale') : 'text-slate-700 hover:text-brand-500'}`}>
-                          <span className={`underline decoration-dashed decoration-2 underline-offset-4 transition-all ${submitted[q.id] ? (i === q.correctOptionIndex ? 'decoration-green-500' : userAns === i ? 'decoration-rose-500' : 'decoration-transparent') : 'decoration-slate-300'}`}>{opt}</span>
+                        <button
+                          key={i}
+                          onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctOptionIndex); }}
+                          disabled={submitted[q.id]}
+                          className={`min-h-[56px] p-3 sm:p-4 rounded-xl border-2 font-black text-left text-base sm:text-lg transition-all flex items-center gap-2 sm:gap-3 active:scale-95 ${submitted[q.id]
+                              ? i === q.correctOptionIndex
+                                ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
+                                : userAns === i
+                                  ? 'bg-red-100 border-red-500 text-red-700'
+                                  : 'bg-slate-50 border-slate-100 opacity-40'
+                              : 'bg-white border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:bg-brand-100'
+                            }`}
+                        >
+                          <span className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${submitted[q.id]
+                              ? i === q.correctOptionIndex
+                                ? 'bg-green-500 text-white'
+                                : userAns === i
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-slate-200 text-slate-400'
+                              : 'bg-brand-500 text-white'
+                            }`}>
+                            {String.fromCharCode(65 + i)}
+                          </span>
+                          <span className="flex-1">{opt}</span>
                         </button>
                       ))}
                     </div>

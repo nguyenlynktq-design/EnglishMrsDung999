@@ -162,34 +162,84 @@ export const playGeminiTTS = async (text: string): Promise<void> => {
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      currentUtterance = utterance;
-
-      // Force American English settings
-      utterance.lang = 'en-US';
-      utterance.rate = 0.95; // Slightly slower for clarity
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-
-      // Use cached American English voice
-      const voice = getAmericanEnglishVoice();
-      if (voice) {
-        utterance.voice = voice;
+      // Check if speechSynthesis is available
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        console.warn('Speech synthesis not available');
+        resolve();
+        return;
       }
 
-      utterance.onend = () => {
-        currentUtterance = null;
-        resolve();
+      // Function to actually speak
+      const speak = () => {
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        currentUtterance = utterance;
+
+        // Force American English settings
+        utterance.lang = 'en-US';
+        utterance.rate = 0.95; // Slightly slower for clarity
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        // Use cached American English voice
+        const voice = getAmericanEnglishVoice();
+        if (voice) {
+          utterance.voice = voice;
+        }
+
+        utterance.onend = () => {
+          currentUtterance = null;
+          resolve();
+        };
+
+        utterance.onerror = (e) => {
+          console.warn('TTS Warning:', e.error);
+          currentUtterance = null;
+          resolve();
+        };
+
+        // Start speaking
+        window.speechSynthesis.speak(utterance);
+
+        // Mobile fix: Some browsers pause speech synthesis when tab is inactive
+        // Workaround: Resume speaking if it gets interrupted
+        const resumeTimer = setInterval(() => {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(resumeTimer);
+          }
+        }, 200);
+
+        // Clear timer after max duration (30 seconds)
+        setTimeout(() => {
+          clearInterval(resumeTimer);
+        }, 30000);
       };
 
-      utterance.onerror = (e) => {
-        console.warn('TTS Warning:', e.error);
-        currentUtterance = null;
-        resolve();
-      };
+      // Ensure voices are loaded before speaking (important for mobile)
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        // Voices not loaded yet, wait for them
+        const handleVoicesChanged = () => {
+          window.speechSynthesis.onvoiceschanged = null;
+          cachedVoice = null;
+          getAmericanEnglishVoice();
+          speak();
+        };
 
-      // Start speaking
-      window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+
+        // Fallback: if voices still not loaded after 500ms, speak anyway
+        setTimeout(() => {
+          if (!currentUtterance) {
+            window.speechSynthesis.onvoiceschanged = null;
+            speak();
+          }
+        }, 500);
+      } else {
+        speak();
+      }
 
     } catch (e) {
       console.error("TTS Error:", e);

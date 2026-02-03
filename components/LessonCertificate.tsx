@@ -129,13 +129,14 @@ export const LessonCertificate: React.FC<LessonCertificateProps> = ({
             {/* Footer */}
             <div className="w-full flex justify-between items-end">
               <div className="text-left">
-                <p className="text-xs text-slate-400">Ngày: {fullDateStr}</p>
+                <p className="text-xs text-slate-400">Ngày cấp: {fullDateStr}</p>
                 <p className="text-sm font-bold text-brand-600 mt-1">English with Heart 💚</p>
               </div>
               <div className="text-right">
-                <div className="w-28 h-0.5 bg-slate-800 mb-2"></div>
-                <p className="text-2xl font-black text-slate-800 italic">Mrs. Dung</p>
-                <p className="text-xs text-slate-500 mt-1">Giáo viên sáng lập</p>
+                <div className="w-32 h-0.5 bg-slate-800 mb-2"></div>
+                <p className="text-2xl font-black text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>Mrs. Dung</p>
+                <p className="text-xs text-brand-600 font-bold mt-1">CEO & Founder</p>
+                <p className="text-[10px] text-slate-400">Trung tâm Anh ngữ Mrs. Dung</p>
               </div>
             </div>
           </div>
