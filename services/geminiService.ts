@@ -230,17 +230,27 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE (CHUYÊN GIA TIẾNG ANH).
   TASK: Analyze the provided content (text/images) and create a comprehensive lesson plan.
   
+  ===== CRITICAL: 100% CONTENT EXTRACTION =====
+  ⚠️ QUAN TRỌNG NHẤT: Phải trích xuất CHÍNH XÁC và ĐẦY ĐỦ 100% nội dung từ nguồn!
+  - Nếu ảnh/văn bản có 10 từ vựng → tạo ĐÚNG 10 từ vựng, KHÔNG được bỏ sót
+  - Nếu ảnh/văn bản có 5 từ vựng → tạo ĐÚNG 5 từ vựng
+  - KHÔNG được tự thêm từ vựng mà nguồn không có
+  - KHÔNG được bỏ sót bất kỳ từ vựng nào trong nguồn
+  - Từ vựng phải GIỐNG HỆT với nội dung gốc (word, IPA, meaning, example)
+  
   CRITICAL LANGUAGE REQUIREMENTS:
   - GRAMMAR section:
     * "topic": Keep in English (the grammar rule name)
     * "explanation": MUST be in VIETNAMESE (giải thích bằng tiếng Việt, dễ hiểu cho học sinh)
     * "examples": Each example MUST include Vietnamese translation in format: "English sentence" → "bản dịch tiếng việt viết thường"
   
-  - VOCABULARY section:
-    * "word": English word
-    * "meaning": MUST be in VIETNAMESE, lowercase (ví dụ: "luôn luôn", "thường xuyên")
-    * "example": English example sentence
-    * "sentenceMeaning": MUST be VIETNAMESE translation of the example, lowercase (ví dụ: "tôi luôn uống cà phê vào buổi sáng")
+  - VOCABULARY section (EXTRACT ALL FROM SOURCE):
+    * Extract EVERY SINGLE vocabulary word from the source - DO NOT SKIP ANY
+    * "word": English word (EXACTLY as shown in source)
+    * "ipa": IPA pronunciation (EXACTLY as shown in source if available)
+    * "meaning": Vietnamese meaning (EXACTLY as shown in source, lowercase)
+    * "example": English example sentence (EXACTLY as shown in source)
+    * "sentenceMeaning": Vietnamese translation of example (EXACTLY as shown in source, lowercase)
   
   ===== MEGATEST EXERCISE REQUIREMENTS (CHẤT LƯỢNG CHUYÊN GIA) =====
   
@@ -260,11 +270,17 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
     * If WRONG: Vietnamese detailed explanation like "Đáp án đúng là B vì trạng từ tần suất 'always' phải đứng trước động từ thường. Ví dụ: I always eat breakfast."
 
   📝 FILL-IN-THE-BLANK (fillBlank):
-  - "question": Use EXACTLY this format for blanks:
-    * 1 word answer → use ONE underscore group: "She ____ drinks milk" (đáp án 1 từ dùng 1 ô trống)
-    * 2 words answer → use TWO underscore groups: "She ____ ____ milk" (đáp án 2 từ dùng 2 ô trống)
-  - "correctAnswer": The exact word(s) to fill in
-  - Number of blank groups (____) MUST equal number of words in correctAnswer
+  ⚠️ CRITICAL RULE: ONLY 1 WORD ANSWER, ONLY 1 BLANK
+  - "question": Câu hoàn chỉnh với CHỈ MỘT ô trống "____"
+    * ĐÚNG: "She ____ to school every day." (đáp án: walks)
+    * ĐÚNG: "I ____ playing football." (đáp án: am)
+    * SAI: "She ____ ____ milk" (KHÔNG được dùng 2 ô trống)
+  - "correctAnswer": PHẢI LÀ 1 TỪ DUY NHẤT (không được 2+ từ như "am eating", "does listen")
+  - Câu hỏi PHẢI đúng ngữ pháp hoàn chỉnh
+  - Ví dụ tốt:
+    * "He usually ____ to music." → "listens" (1 từ)
+    * "They ____ studying now." → "are" (1 từ)
+    * "She ____ breakfast every morning." → "eats" (1 từ)
   
   📝 ERROR IDENTIFICATION (errorId):
   - "sentence": Complete sentence with FOUR parts marked (A), (B), (C), (D)
