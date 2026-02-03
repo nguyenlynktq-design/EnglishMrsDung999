@@ -89,160 +89,157 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// ===== TTS SYSTEM: Stable American English Pronunciation =====
-// Primary: Web Speech API (fast, native, reliable)
-// Fallback: Gemini TTS (for enhanced quality when available)
+// ===== TTS SYSTEM: Mobile-First with Immediate Playback =====
+// Uses Web Speech API with mobile-specific fixes
 
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 let cachedVoice: SpeechSynthesisVoice | null = null;
+let voicesLoaded = false;
 
-// Get the best American English voice available
-const getAmericanEnglishVoice = (): SpeechSynthesisVoice | null => {
-  if (cachedVoice) return cachedVoice;
+// Get available voices
+const loadVoices = (): Promise<SpeechSynthesisVoice[]> => {
+  return new Promise((resolve) => {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      voicesLoaded = true;
+      resolve(voices);
+      return;
+    }
 
-  const voices = window.speechSynthesis.getVoices();
+    // Wait for voices to load
+    const checkVoices = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        voicesLoaded = true;
+        resolve(v);
+      }
+    };
 
-  // Priority order for American English voices
-  const preferredVoices = [
-    'Google US English',
-    'Microsoft Aria Online (Natural) - English (United States)',
-    'Microsoft Guy Online (Natural) - English (United States)',
-    'Samantha',
-    'Alex',
+    window.speechSynthesis.onvoiceschanged = checkVoices;
+
+    // Also poll because onvoiceschanged doesn't always fire on mobile
+    const interval = setInterval(() => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        clearInterval(interval);
+        voicesLoaded = true;
+        resolve(v);
+      }
+    }, 100);
+
+    // Timeout after 2 seconds
+    setTimeout(() => {
+      clearInterval(interval);
+      resolve(window.speechSynthesis.getVoices());
+    }, 2000);
+  });
+};
+
+// Get the best English voice
+const getBestVoice = (voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null => {
+  if (cachedVoice && voices.includes(cachedVoice)) return cachedVoice;
+
+  // Priority: Google > Microsoft > Native
+  const priorities = [
+    (v: SpeechSynthesisVoice) => v.name.includes('Google') && v.lang.startsWith('en'),
+    (v: SpeechSynthesisVoice) => v.name.includes('Microsoft') && v.lang.startsWith('en'),
+    (v: SpeechSynthesisVoice) => v.lang === 'en-US',
+    (v: SpeechSynthesisVoice) => v.lang.startsWith('en'),
   ];
 
-  // Try to find preferred voice first
-  for (const preferredName of preferredVoices) {
-    const voice = voices.find(v => v.name.includes(preferredName));
+  for (const check of priorities) {
+    const voice = voices.find(check);
     if (voice) {
       cachedVoice = voice;
       return voice;
     }
   }
 
-  // Fallback: any en-US voice
-  const usVoice = voices.find(v => v.lang === 'en-US');
-  if (usVoice) {
-    cachedVoice = usVoice;
-    return usVoice;
-  }
-
-  // Last fallback: any English voice
-  const enVoice = voices.find(v => v.lang.startsWith('en'));
-  if (enVoice) {
-    cachedVoice = enVoice;
-    return enVoice;
-  }
-
-  return null;
+  return voices[0] || null;
 };
 
-// Pre-load voices when page loads
+// Pre-load voices on page load
 if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    cachedVoice = null;
-    getAmericanEnglishVoice();
-  };
-  // Initial load
-  getAmericanEnglishVoice();
+  loadVoices();
 }
 
+// Main TTS function - IMMEDIATE playback for mobile
 export const playGeminiTTS = async (text: string): Promise<void> => {
+  // Check availability
+  if (typeof window === 'undefined' || !window.speechSynthesis) {
+    console.warn('Speech synthesis not available');
+    return;
+  }
+
+  // Clean text
+  const cleanText = text.trim().replace(/[^\w\s.,!?'-]/g, '');
+  if (!cleanText) return;
+
+  // CRITICAL: Cancel any existing speech FIRST (fixes mobile issues)
+  window.speechSynthesis.cancel();
+  currentUtterance = null;
+
+  // Small delay after cancel to ensure it's processed (mobile fix)
+  await new Promise(r => setTimeout(r, 50));
+
+  // Load voices
+  const voices = await loadVoices();
+
   return new Promise((resolve) => {
     try {
-      // Cancel any currently playing audio
-      if (currentUtterance) {
-        window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      currentUtterance = utterance;
+
+      // Set voice
+      const voice = getBestVoice(voices);
+      if (voice) {
+        utterance.voice = voice;
       }
 
-      // Clean text for better pronunciation
-      const cleanText = text.trim().replace(/[^\w\s.,!?'-]/g, '');
-      if (!cleanText) {
+      // Settings for clear pronunciation
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+
+      // Event handlers
+      utterance.onend = () => {
+        currentUtterance = null;
         resolve();
-        return;
-      }
-
-      // Check if speechSynthesis is available
-      if (typeof window === 'undefined' || !window.speechSynthesis) {
-        console.warn('Speech synthesis not available');
-        resolve();
-        return;
-      }
-
-      // Function to actually speak
-      const speak = () => {
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        currentUtterance = utterance;
-
-        // Force American English settings
-        utterance.lang = 'en-US';
-        utterance.rate = 0.95; // Slightly slower for clarity
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-
-        // Use cached American English voice
-        const voice = getAmericanEnglishVoice();
-        if (voice) {
-          utterance.voice = voice;
-        }
-
-        utterance.onend = () => {
-          currentUtterance = null;
-          resolve();
-        };
-
-        utterance.onerror = (e) => {
-          console.warn('TTS Warning:', e.error);
-          currentUtterance = null;
-          resolve();
-        };
-
-        // Start speaking
-        window.speechSynthesis.speak(utterance);
-
-        // Mobile fix: Some browsers pause speech synthesis when tab is inactive
-        // Workaround: Resume speaking if it gets interrupted
-        const resumeTimer = setInterval(() => {
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-          if (!window.speechSynthesis.speaking) {
-            clearInterval(resumeTimer);
-          }
-        }, 200);
-
-        // Clear timer after max duration (30 seconds)
-        setTimeout(() => {
-          clearInterval(resumeTimer);
-        }, 30000);
       };
 
-      // Ensure voices are loaded before speaking (important for mobile)
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        // Voices not loaded yet, wait for them
-        const handleVoicesChanged = () => {
-          window.speechSynthesis.onvoiceschanged = null;
-          cachedVoice = null;
-          getAmericanEnglishVoice();
-          speak();
-        };
+      utterance.onerror = (e) => {
+        console.warn('TTS error:', e.error);
+        currentUtterance = null;
+        resolve();
+      };
 
-        window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+      // SPEAK IMMEDIATELY
+      window.speechSynthesis.speak(utterance);
 
-        // Fallback: if voices still not loaded after 500ms, speak anyway
-        setTimeout(() => {
-          if (!currentUtterance) {
-            window.speechSynthesis.onvoiceschanged = null;
-            speak();
-          }
-        }, 500);
-      } else {
-        speak();
-      }
+      // Mobile Chrome/Safari fix: resume if paused
+      // This is crucial for mobile browsers that pause speech
+      const mobileResumeFix = setInterval(() => {
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          clearInterval(mobileResumeFix);
+          return;
+        }
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      }, 100);
+
+      // Cleanup timer after 30 seconds max
+      setTimeout(() => {
+        clearInterval(mobileResumeFix);
+        if (currentUtterance === utterance) {
+          currentUtterance = null;
+          resolve();
+        }
+      }, 30000);
 
     } catch (e) {
-      console.error("TTS Error:", e);
+      console.error('TTS Error:', e);
       resolve();
     }
   });
