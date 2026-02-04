@@ -517,92 +517,125 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   📝 ERROR IDENTIFICATION (errorId):
   ⚠️ ĐÂY LÀ PHẦN DỄ SAI NHẤT! PHẢI KIỂM TRA THẬT KỸ!
   
-  🔴 CRITICAL INDEX MAPPING - PHẢI NHỚ CHÍNH XÁC:
-  - (A) = index 0
-  - (B) = index 1
-  - (C) = index 2
-  - (D) = index 3
+  🔴🔴🔴 CRITICAL - ĐỌC KỸ VÀ LÀM ĐÚNG 🔴🔴🔴
   
-  📋 QUY TRÌNH BẮT BUỘC CHO MỖI CÂU ERROR ID:
+  INDEX MAPPING TABLE - HỌC THUỘC LÒNG:
+  ┌─────────┬─────────────────────┐
+  │ CHỮ CÁI │ correctOptionIndex  │
+  ├─────────┼─────────────────────┤
+  │   (A)   │         0           │
+  │   (B)   │         1           │
+  │   (C)   │         2           │
+  │   (D)   │         3           │
+  └─────────┴─────────────────────┘
+  
+  📋 QUY TRÌNH BẮT BUỘC 5 BƯỚC:
   
   BƯỚC 1 - TẠO CÂU:
-  Viết câu có ĐÚNG 1 lỗi ngữ pháp rõ ràng. Đánh dấu 4 phần (A), (B), (C), (D).
+  Viết câu có ĐÚNG 1 lỗi ngữ pháp. Đánh dấu 4 phần (A), (B), (C), (D).
   
-  BƯỚC 2 - PHÂN TÍCH TỪNG PHẦN:
-  Với MỖI phần, hỏi: "Phần này có vi phạm quy tắc ngữ pháp nào trong 15 quy tắc không?"
-  - Nếu ĐÚNG ngữ pháp → Ghi ✓
-  - Nếu SAI ngữ pháp → Ghi ❌ và ghi index
+  BƯỚC 2 - TÌM LỖI:
+  Xác định CHỮ CÁI của phần có lỗi. Ví dụ: "Lỗi ở phần (A)"
   
-  BƯỚC 3 - XÁC ĐỊNH correctOptionIndex:
-  correctOptionIndex = index của phần có lỗi (0, 1, 2, hoặc 3)
+  BƯỚC 3 - CHUYỂN ĐỔI CHỮ CÁI SANG INDEX:
+  Dùng bảng trên: A→0, B→1, C→2, D→3
+  Ví dụ: Lỗi ở (A) → correctOptionIndex = 0
   
-  BƯỚC 4 - KIỂM TRA NGƯỢC:
-  Đọc lại: "Nếu correctOptionIndex = X, thì options[X] có thực sự chứa lỗi không?"
+  BƯỚC 4 - GHI VÀO JSON:
+  "correctOptionIndex": [số đã tính ở bước 3]
   
-  ===== VÍ DỤ ĐÚNG - HỌC THUỘC VÀ LÀM THEO =====
+  BƯỚC 5 - KIỂM TRA NGƯỢC (BẮT BUỘC!):
+  Đọc lại explanation và xem phần có lỗi có khớp với options[correctOptionIndex] không.
+  Nếu explanation nói "lỗi ở go" thì options[correctOptionIndex] PHẢI chứa "go"!
   
-  VÍ DỤ 1:
+  ===== VÍ DỤ THỰC TẾ - LÀM THEO Y HỆT =====
+  
+  📌 VÍ DỤ 1 - LỖI Ở (A):
   sentence: "She (A) have (B) a (C) table (D) ."
   options: ["(A) have", "(B) a", "(C) table", "(D) ."]
   
-  PHÂN TÍCH:
-  - (A) have: ❌ LỖI! "She" là ngôi 3 số ít → phải dùng "has", không phải "have"
-  - (B) a: ✓ Mạo từ đúng
-  - (C) table: ✓ Danh từ đúng
-  - (D) .: ✓ Dấu chấm đúng
+  Bước 2: Lỗi ở "have" → Đây là phần (A)
+  Bước 3: (A) → index 0
+  Bước 4: correctOptionIndex: 0
+  Bước 5: options[0] = "(A) have" ✓ KHỚP VỚI LỖI!
   
-  → Lỗi ở (A), index = 0
-  → correctOptionIndex: 0 ✓
+  explanation: "Lỗi ở (A). 'She' là ngôi 3 số ít → dùng 'has', không phải 'have'."
   
-  ❌ SAI: correctOptionIndex: 1 (vì index 1 là "(B) a" - KHÔNG CÓ LỖI!)
-  
-  VÍ DỤ 2:
+  📌 VÍ DỤ 2 - LỖI Ở (B):
   sentence: "The (A) bananas (B) is (C) yellow (D) ."
   options: ["(A) bananas", "(B) is", "(C) yellow", "(D) ."]
   
-  PHÂN TÍCH:
-  - (A) bananas: ✓ Danh từ số nhiều đúng
-  - (B) is: ❌ LỖI! "bananas" là số nhiều → phải dùng "are", không phải "is"
-  - (C) yellow: ✓ Tính từ đúng
-  - (D) .: ✓ Dấu chấm đúng
+  Bước 2: Lỗi ở "is" → Đây là phần (B)
+  Bước 3: (B) → index 1
+  Bước 4: correctOptionIndex: 1
+  Bước 5: options[1] = "(B) is" ✓ KHỚP VỚI LỖI!
   
-  → Lỗi ở (B), index = 1
-  → correctOptionIndex: 1 ✓
+  explanation: "Lỗi ở (B). 'bananas' là số nhiều → dùng 'are', không phải 'is'."
   
-  ❌ SAI: correctOptionIndex: 2 (vì index 2 là "(C) yellow" - KHÔNG CÓ LỖI!)
+  📌 VÍ DỤ 3 - LỖI Ở (A) VỚI THÌ QUÁ KHỨ:
+  sentence: "I (A) go (B) to (C) the aquarium (D) yesterday."
+  options: ["(A) go", "(B) to", "(C) the aquarium", "(D) yesterday"]
   
-  VÍ DỤ 3:
-  sentence: "I (A) like (B) a (C) bananas (D) ."
-  options: ["(A) like", "(B) a", "(C) bananas", "(D) ."]
+  Bước 2: "yesterday" = thời gian quá khứ → lỗi ở "go" cần đổi thành "went"
+          "go" nằm ở phần (A)
+  Bước 3: (A) → index 0
+  Bước 4: correctOptionIndex: 0
+  Bước 5: options[0] = "(A) go" ✓ KHỚP! 
+          ❌ KHÔNG PHẢI options[1] = "(B) to"!
   
-  PHÂN TÍCH:
-  - (A) like: ✓ "I like" - đúng ngữ pháp
-  - (B) a: ❌ LỖI! "a" dùng với danh từ số ít, nhưng "bananas" là số nhiều
-  - (C) bananas: ✓ (lỗi ở "a", không phải ở "bananas")
-  - (D) .: ✓ Dấu chấm đúng
+  explanation: "Lỗi ở (A). 'yesterday' là thời gian quá khứ → 'go' phải đổi thành 'went'."
   
-  → Lỗi ở (B), index = 1
-  → correctOptionIndex: 1 ✓
+  ⚠️ LƯU Ý: Trong ví dụ trên, "to" KHÔNG có lỗi! "go to" là đúng ngữ pháp.
+  Lỗi là ở THÌ của động từ (go → went), không phải ở giới từ "to".
   
-  VÍ DỤ 4:
+  📌 VÍ DỤ 4 - LỖI Ở (D):
   sentence: "He (A) put (B) the (C) cup (D) in the table."
   options: ["(A) put", "(B) the", "(C) cup", "(D) in the table"]
   
-  PHÂN TÍCH:
-  - (A) put: ✓ Động từ đúng
-  - (B) the: ✓ Mạo từ đúng
-  - (C) cup: ✓ Danh từ đúng
-  - (D) in the table: ❌ LỖI! Vật ở TRÊN bề mặt → dùng "on", không phải "in"
+  Bước 2: Lỗi ở "in the table" → phải dùng "on" (vật ở TRÊN bề mặt)
+          "in the table" nằm ở phần (D)
+  Bước 3: (D) → index 3
+  Bước 4: correctOptionIndex: 3
+  Bước 5: options[3] = "(D) in the table" ✓ KHỚP VỚI LỖI!
   
-  → Lỗi ở (D), index = 3
-  → correctOptionIndex: 3 ✓
+  explanation: "Lỗi ở (D). Vật ở TRÊN bề mặt → dùng 'on', không phải 'in'."
+  
+  📌 VÍ DỤ 5 - LỖI Ở (C):
+  sentence: "They (A) went (B) to (C) school yesterday (D) ."
+  options: ["(A) went", "(B) to", "(C) school yesterday", "(D) ."]
+  
+  Giả sử câu này đúng ngữ pháp, KHÔNG có lỗi → ĐỔI thành câu khác!
+  
+  sentence: "She (A) can (B) swims (C) very fast (D) ."
+  options: ["(A) can", "(B) swims", "(C) very fast", "(D) ."]
+  
+  Bước 2: "can" là modal verb → động từ theo sau phải ở dạng nguyên
+          "swims" sai, phải là "swim" → Lỗi ở (B)
+  Bước 3: (B) → index 1
+  Bước 4: correctOptionIndex: 1
+  Bước 5: options[1] = "(B) swims" ✓ KHỚP VỚI LỖI!
+  
+  explanation: "Lỗi ở (B). Sau 'can' động từ phải ở dạng nguyên → 'swim', không phải 'swims'."
+  
+  ===== ❌ SAI LẦM THƯỜNG GẶP - TUYỆT ĐỐI KHÔNG LÀM ❌ =====
+  
+  ❌ SAI LẦM 1: Explanation nói lỗi ở "go" nhưng correctOptionIndex = 1
+  Vì "go" ở phần (A) → correctOptionIndex PHẢI = 0, không phải 1!
+  
+  ❌ SAI LẦM 2: Nhầm lẫn giữa vị trí xuất hiện và chữ cái
+  "go" xuất hiện đầu tiên NHƯNG nó có thể là (A), (B), (C) hoặc (D) tùy câu
+  → Luôn xem chữ cái trong ngoặc đơn, KHÔNG đếm vị trí!
   
   ===== KIỂM TRA CUỐI CÙNG CHO ERROR ID =====
-  Trước khi submit mỗi câu Error ID, TRẢ LỜI các câu hỏi:
-  □ Tôi đã phân tích từng phần (A), (B), (C), (D) chưa?
-  □ Chỉ có ĐÚNG 1 phần có lỗi, 3 phần còn lại đều đúng ngữ pháp?
-  □ correctOptionIndex có đúng với index của phần có lỗi không?
-  □ Nếu tôi chọn options[correctOptionIndex], tôi có lấy đúng phần có lỗi không?
+  
+  🔍 FINAL CHECK - ĐỌC TO VÀ TRẢ LỜI:
+  
+  1. Explanation nói lỗi ở từ/cụm từ nào? → Ghi ra: "__________"
+  2. Từ/cụm từ đó nằm ở chữ cái nào (A/B/C/D)? → Ghi ra: "(___)"
+  3. Chữ cái đó tương ứng với index mấy? → A=0, B=1, C=2, D=3 → Index: ___
+  4. correctOptionIndex trong JSON có = index ở bước 3 không? → CÓ ✓ / KHÔNG ❌
+  
+  Nếu bước 4 = KHÔNG → SỬA LẠI correctOptionIndex!
   
   ===== 🚨🚨🚨 SCRAMBLE - MANDATORY WORD MATCH VALIDATION 🚨🚨🚨 =====
 
