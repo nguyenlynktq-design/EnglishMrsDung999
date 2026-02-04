@@ -297,6 +297,13 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   const prompt = `MRS. DUNG AI - EXPERT PEDAGOGY MODE (CHUYÊN GIA TIẾNG ANH).
   TASK: Analyze the provided content (text/images) and create a comprehensive lesson plan.
   
+  ===== ⚠️⚠️⚠️ CRITICAL WARNING: ZERO TOLERANCE FOR GRADING ERRORS ⚠️⚠️⚠️ =====
+  
+  🚨 BẠN ĐANG TẠO BÀI KIỂM TRA CHO HỌC SINH THẬT! 🚨
+  - Nếu đáp án SAI → Học sinh bị chấm SAI → Học sinh mất niềm tin → THẤT BẠI!
+  - Mỗi câu hỏi PHẢI được kiểm tra 2 LẦN trước khi output
+  - KHÔNG ĐƯỢC phép ra đề 1 kiểu, đáp án 1 kiểu khác!
+  
   ===== CRITICAL: 100% CONTENT EXTRACTION =====
   ⚠️ QUAN TRỌNG NHẤT: Phải trích xuất CHÍNH XÁC và ĐẦY ĐỦ 100% nội dung từ nguồn!
   - Nếu ảnh/văn bản có 10 từ vựng → tạo ĐÚNG 10 từ vựng, KHÔNG được bỏ sót
@@ -505,74 +512,156 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   ✓ Rule 1: He + V-s = "listens" ✓
   ✓ Complete sentence: "He usually listens to music." ✓ Grammatically perfect
   
+  ===== 🚨🚨🚨 ERROR IDENTIFICATION - MANDATORY DOUBLE-CHECK PROTOCOL 🚨🚨🚨 =====
+  
   📝 ERROR IDENTIFICATION (errorId):
-  ⚠️ MOST CRITICAL - THIS IS WHERE MISTAKES HAPPEN MOST!
+  ⚠️ ĐÂY LÀ PHẦN DỄ SAI NHẤT! PHẢI KIỂM TRA THẬT KỸ!
   
-  STEP-BY-STEP VERIFICATION PROCESS:
-  1. Write the sentence with marked parts (A), (B), (C), (D)
-  2. For EACH part, ask: "Does this violate any of the 15 grammar rules?"
-  3. Mark ONLY the part that clearly violates a grammar rule
-  4. The other 3 parts MUST be grammatically perfect
-  5. Write explanation citing the specific rule violated
+  🔴 CRITICAL INDEX MAPPING - PHẢI NHỚ CHÍNH XÁC:
+  - (A) = index 0
+  - (B) = index 1
+  - (C) = index 2
+  - (D) = index 3
   
-  FORMAT:
-  - "sentence": "I (A) need (B) to make (C) a complain (D) about the service."
-  - "options": ["(A) need", "(B) to make", "(C) a complain", "(D) about the service"]
-  - "correctOptionIndex": 2 (because C violates Rule 2: verb/noun form)
-  - "explanation": "Lỗi ở (C). 'complain' là ĐỘNG TỪ, phải dùng DANH TỪ 'complaint'. Cấu trúc đúng: make a complaint (đưa ra lời phàn nàn)."
+  📋 QUY TRÌNH BẮT BUỘC CHO MỖI CÂU ERROR ID:
   
-  ERROR ID VALIDATION EXAMPLE:
-  Sentence: "I (A) need (B) to make (C) a complain (D) about the service."
-  - (A) "need": ✓ Rule 1: "I need" - correct subject-verb
-  - (B) "to make": ✓ Rule 9: "need to + V" - correct infinitive
-  - (C) "a complain": ❌ Rule 2: "complain" is VERB, need NOUN "complaint"
-  - (D) "about the service": ✓ Rule 5: "about" is correct preposition
-  → correctOptionIndex = 2 (C is the ONLY error)
+  BƯỚC 1 - TẠO CÂU:
+  Viết câu có ĐÚNG 1 lỗi ngữ pháp rõ ràng. Đánh dấu 4 phần (A), (B), (C), (D).
   
-  ❌ COMMON MISTAKES TO AVOID:
-  - Don't mark a correct phrase as error
-  - Don't confuse which part contains the actual error
-  - Double-check: "about the service" is NOT an error!
+  BƯỚC 2 - PHÂN TÍCH TỪNG PHẦN:
+  Với MỖI phần, hỏi: "Phần này có vi phạm quy tắc ngữ pháp nào trong 15 quy tắc không?"
+  - Nếu ĐÚNG ngữ pháp → Ghi ✓
+  - Nếu SAI ngữ pháp → Ghi ❌ và ghi index
+  
+  BƯỚC 3 - XÁC ĐỊNH correctOptionIndex:
+  correctOptionIndex = index của phần có lỗi (0, 1, 2, hoặc 3)
+  
+  BƯỚC 4 - KIỂM TRA NGƯỢC:
+  Đọc lại: "Nếu correctOptionIndex = X, thì options[X] có thực sự chứa lỗi không?"
+  
+  ===== VÍ DỤ ĐÚNG - HỌC THUỘC VÀ LÀM THEO =====
+  
+  VÍ DỤ 1:
+  sentence: "She (A) have (B) a (C) table (D) ."
+  options: ["(A) have", "(B) a", "(C) table", "(D) ."]
+  
+  PHÂN TÍCH:
+  - (A) have: ❌ LỖI! "She" là ngôi 3 số ít → phải dùng "has", không phải "have"
+  - (B) a: ✓ Mạo từ đúng
+  - (C) table: ✓ Danh từ đúng
+  - (D) .: ✓ Dấu chấm đúng
+  
+  → Lỗi ở (A), index = 0
+  → correctOptionIndex: 0 ✓
+  
+  ❌ SAI: correctOptionIndex: 1 (vì index 1 là "(B) a" - KHÔNG CÓ LỖI!)
+  
+  VÍ DỤ 2:
+  sentence: "The (A) bananas (B) is (C) yellow (D) ."
+  options: ["(A) bananas", "(B) is", "(C) yellow", "(D) ."]
+  
+  PHÂN TÍCH:
+  - (A) bananas: ✓ Danh từ số nhiều đúng
+  - (B) is: ❌ LỖI! "bananas" là số nhiều → phải dùng "are", không phải "is"
+  - (C) yellow: ✓ Tính từ đúng
+  - (D) .: ✓ Dấu chấm đúng
+  
+  → Lỗi ở (B), index = 1
+  → correctOptionIndex: 1 ✓
+  
+  ❌ SAI: correctOptionIndex: 2 (vì index 2 là "(C) yellow" - KHÔNG CÓ LỖI!)
+  
+  VÍ DỤ 3:
+  sentence: "I (A) like (B) a (C) bananas (D) ."
+  options: ["(A) like", "(B) a", "(C) bananas", "(D) ."]
+  
+  PHÂN TÍCH:
+  - (A) like: ✓ "I like" - đúng ngữ pháp
+  - (B) a: ❌ LỖI! "a" dùng với danh từ số ít, nhưng "bananas" là số nhiều
+  - (C) bananas: ✓ (lỗi ở "a", không phải ở "bananas")
+  - (D) .: ✓ Dấu chấm đúng
+  
+  → Lỗi ở (B), index = 1
+  → correctOptionIndex: 1 ✓
+  
+  VÍ DỤ 4:
+  sentence: "He (A) put (B) the (C) cup (D) in the table."
+  options: ["(A) put", "(B) the", "(C) cup", "(D) in the table"]
+  
+  PHÂN TÍCH:
+  - (A) put: ✓ Động từ đúng
+  - (B) the: ✓ Mạo từ đúng
+  - (C) cup: ✓ Danh từ đúng
+  - (D) in the table: ❌ LỖI! Vật ở TRÊN bề mặt → dùng "on", không phải "in"
+  
+  → Lỗi ở (D), index = 3
+  → correctOptionIndex: 3 ✓
+  
+  ===== KIỂM TRA CUỐI CÙNG CHO ERROR ID =====
+  Trước khi submit mỗi câu Error ID, TRẢ LỜI các câu hỏi:
+  □ Tôi đã phân tích từng phần (A), (B), (C), (D) chưa?
+  □ Chỉ có ĐÚNG 1 phần có lỗi, 3 phần còn lại đều đúng ngữ pháp?
+  □ correctOptionIndex có đúng với index của phần có lỗi không?
+  □ Nếu tôi chọn options[correctOptionIndex], tôi có lấy đúng phần có lỗi không?
+  
+  ===== 🚨🚨🚨 SCRAMBLE - MANDATORY WORD MATCH VALIDATION 🚨🚨🚨 =====
 
   📝 SCRAMBLE (scramble):
-  ⚠️ MOST COMMON GRAMMAR MISTAKES IN SCRAMBLE - MUST AVOID:
+  ⚠️ LỖI THƯỜNG GẶP NHẤT: TỪ TRONG SCRAMBLED KHÔNG KHỚP VỚI CORRECTSENTENCE!
   
-  CRITICAL RULE: "to + VERB" = INFINITIVE = verb in BASE FORM (no -s/-es/-ed)
-  ❌ WRONG: "She decides to buys" - NEVER add -s after "to"!
-  ✓ CORRECT: "She decides to buy"
-  ❌ WRONG: "I want to goes" 
-  ✓ CORRECT: "I want to go"
-  ❌ WRONG: "They need to eats"
-  ✓ CORRECT: "They need to eat"
+  🔴 QUY TẮC VÀNG: scrambled PHẢI chứa CHÍNH XÁC các từ trong correctSentence!
   
-  VERIFICATION PROCESS FOR EACH SCRAMBLE:
-  1. Write the correctSentence FIRST - verify it's 100% grammatically correct
-  2. Check EVERY verb: Is there "to" before it? → Must be base form (no -s)!
-  3. Check modal verbs (can/will/should/must) → Next verb must be base form
-  4. Check subject-verb agreement: He/She/It + V-s, I/You/We/They + V (base)
-  5. THEN split into words for scrambled array
-  6. VERIFY: Every word in scrambled = Every word in correctSentence (exact match)
+  📋 QUY TRÌNH BẮT BUỘC CHO MỖI CÂU SCRAMBLE:
   
-  FORMAT:
-  - "correctSentence": Grammatically perfect sentence (WRITE THIS FIRST!)
-  - "scrambled": EXACT same words as correctSentence, just shuffled (NO EXTRA WORDS!)
-  - "translation": Natural Vietnamese translation
+  BƯỚC 1 - VIẾT CORRECTSENTENCE TRƯỚC:
+  Viết câu hoàn chỉnh, kiểm tra ngữ pháp 100% đúng.
+  Ví dụ: "He has a bat."
   
-  ⚠️ ABSOLUTELY NO EXTRA WORDS in scrambled array!
-  If correctSentence = "I like pizza." then scrambled = ["pizza", "I", "like", "."]
-  ❌ WRONG: scrambled = ["to", "I", "pizza", "like", "."] (has extra "to" not in sentence!)
+  BƯỚC 2 - TÁCH TỪ:
+  Tách correctSentence thành mảng từ (bao gồm cả dấu câu).
+  Ví dụ: ["He", "has", "a", "bat", "."] → 5 phần tử
   
-  SCRAMBLE VALIDATION EXAMPLES:
-  Example 1:
-  ✓ correctSentence: "She wants to buy a new dress."
-  ✓ Check: "to buy" = to + base form ✓
-  ✓ scrambled: ["dress", "buy", "a", "to", "She", "wants", "new", "."] ✓ All 8 words match
+  BƯỚC 3 - XÁO TRỘN:
+  Xáo trộn mảng từ để tạo scrambled.
+  Ví dụ: ["bat", "a", "He", "has", "."] → 5 phần tử
   
-  Example 2:
-  ✓ correctSentence: "We should protect the environment."
-  ✓ Check: "should protect" = modal + base form ✓
-  ✓ scrambled: ["the", "protect", "We", "should", "environment", "."] ✓ All 6 words match
-  ❌ WRONG scrambled: ["to", "the", "protect", "We", "should", "environment", "."] ← Extra "to"!
+  BƯỚC 4 - XÁC MINH:
+  ĐẾM SỐ PHẦN TỬ: scrambled.length === correctSentence (đã tách).length?
+  SO SÁNH TỪ: Mỗi từ trong scrambled có trong correctSentence không?
+  
+  ===== VÍ DỤ ĐÚNG =====
+  
+  VÍ DỤ 1:
+  ✓ correctSentence: "He has a bat."
+  ✓ Tách từ: ["He", "has", "a", "bat", "."] (5 từ)
+  ✓ scrambled: ["bat", "a", "He", "has", "."] (5 từ) ✓ KHỚP!
+  
+  VÍ DỤ 2:
+  ✓ correctSentence: "This is a green apple."
+  ✓ Tách từ: ["This", "is", "a", "green", "apple", "."] (6 từ)
+  ✓ scrambled: ["green", "a", "apple", "This", "is", "."] (6 từ) ✓ KHỚP!
+  
+  ===== VÍ DỤ SAI - TUYỆT ĐỐI KHÔNG LÀM =====
+  
+  ❌ SAI - THỪA TỪ:
+  correctSentence: "I like pizza."
+  scrambled: ["to", "I", "pizza", "like", "."] ← Thừa "to"! WRONG!
+  
+  ❌ SAI - THIẾU TỪ:
+  correctSentence: "This is a green apple."
+  scrambled: ["green", "apple", "This", "is", "."] ← Thiếu "a"! WRONG!
+  
+  ❌ SAI - TỪ KHÁC:
+  correctSentence: "This is a green apple."
+  scrambled: ["green", "an", "apple", "This", "is", "."] ← "an" thay vì "a"! WRONG!
+  
+  ===== KIỂM TRA CUỐI CÙNG CHO SCRAMBLE =====
+  Trước khi submit mỗi câu Scramble, TRẢ LỜI các câu hỏi:
+  □ correctSentence có đúng ngữ pháp 100% không?
+  □ Tôi đã tách correctSentence thành từng từ chưa?
+  □ scrambled có ĐÚNG số từ như correctSentence không?
+  □ Mỗi từ trong scrambled có xuất hiện trong correctSentence không?
+  □ Không có từ thừa, từ thiếu, hay từ bị thay đổi?
 
   MANDATORY REQUIREMENTS:
   1. Extract 100% of vocabulary and grammar from source
@@ -589,8 +678,10 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   □ Does the correct answer follow the 15 grammar rules?
   □ Is there only ONE possible correct answer?
   □ For Error ID: Did I verify EACH option (A), (B), (C), (D)?
-  □ For Error ID: Is the marked error truly violating a grammar rule?
+  □ For Error ID: Is correctOptionIndex pointing to the ACTUAL error?
   □ For Error ID: Are the other 3 options grammatically correct?
+  □ For Scramble: Does scrambled array contain EXACT same words as correctSentence?
+  □ For Scramble: No extra words, no missing words, no changed words?
   □ Is the explanation accurate and educational?
   
   ⚠️ IF UNSURE: Re-read the 15 grammar rules and apply them systematically
