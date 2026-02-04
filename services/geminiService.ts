@@ -350,6 +350,43 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   □ Did I use at least 8/10 Scramble sentences with input vocabulary?
   □ Did I use at least 8/10 Error ID sentences with input vocabulary?
   
+  ===== ⚠️ CRITICAL: MATCH DIFFICULTY LEVEL WITH INPUT =====
+  
+  🎯 GOLDEN RULE: Exercise difficulty MUST match the input example sentences!
+  
+  STEP 1: Analyze the input sentences complexity:
+  - Simple: "He has a bat." (Subject + verb + object) = 4-5 words, basic verbs
+  - Medium: "I usually go to school by bus." = 6-8 words, more structure
+  - Complex: "She wants to buy a new dress for the party." = 8+ words, infinitives, clauses
+  
+  STEP 2: Create exercises at the SAME complexity level!
+  
+  ❌ WRONG EXAMPLE (INPUT IS SIMPLE BUT EXERCISE IS COMPLEX):
+  Input vocabulary: Bat - "He has a bat."
+  ❌ Exercise: "She wants to use the map to find her way." (TOO COMPLEX!)
+  ❌ Exercise: "I hit the ball with a bat." (MORE COMPLEX THAN INPUT!)
+  ❌ Exercise: "The map shows the way to the city." (TOO COMPLEX!)
+  
+  ✓ CORRECT EXAMPLE (MATCHING DIFFICULTY):
+  Input vocabulary: Bat - "He has a bat.", Map - "I need a map.", Bed - "The bed is big."
+  ✓ Multiple Choice: "He has a ____." (A) bat (B) car (C) book (D) pen
+  ✓ Fill-blank: "I need a ____." → map
+  ✓ Scramble: "has / He / a / bat / ." → "He has a bat."
+  ✓ Error ID: "He (A) have (B) a (C) bat (D) ." → Error at (A): "have" should be "has"
+  
+  DIFFICULTY MATCHING RULES:
+  1. If input uses 3-5 word sentences → Exercises use 3-5 word sentences
+  2. If input uses simple verbs (has, is, need) → Exercises use same simple verbs
+  3. If input uses basic structures (S + V + O) → Exercises use same basic structures
+  4. DO NOT add infinitives (to + verb) if input doesn't have them
+  5. DO NOT add complex clauses if input only has simple sentences
+  6. PREFER using the EXACT example sentences from input as exercise base
+  
+  VERIFICATION: Before submitting, check each exercise:
+  □ Is this sentence complexity similar to input examples?
+  □ Am I using vocabulary from the input, not new complex words?
+  □ Would a student who learned the input vocabulary understand this exercise?
+  
   ===== FUNDAMENTAL GRAMMAR RULES CHECKLIST =====
   Before creating ANY exercise, verify these 15 grammar rules:
   
