@@ -85,7 +85,7 @@ export const LessonCertificate: React.FC<LessonCertificateProps> = ({
             {/* Header */}
             <div className="text-center">
               <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">🏫</div>
-              <p className="text-sm font-bold text-brand-600 uppercase tracking-[0.3em] mb-1">Trung tâm Anh ngữ Mrs. Dung</p>
+              <p className="text-sm font-bold text-brand-600 uppercase tracking-[0.3em] mb-1">Trung tâm Ngoại Ngữ English Mrs. Dung</p>
               <h1 className="text-3xl font-black text-brand-800 uppercase tracking-wide">GIẤY CHỨNG NHẬN</h1>
               <p className="text-sm text-slate-500 font-semibold mt-1">Hoàn thành xuất sắc bài học</p>
             </div>
@@ -135,8 +135,8 @@ export const LessonCertificate: React.FC<LessonCertificateProps> = ({
               <div className="text-right">
                 <div className="w-32 h-0.5 bg-slate-800 mb-2"></div>
                 <p className="text-2xl font-black text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>Mrs. Dung</p>
-                <p className="text-xs text-brand-600 font-bold mt-1">CEO & Founder</p>
-                <p className="text-[10px] text-slate-400">Trung tâm Anh ngữ Mrs. Dung</p>
+                <p className="text-xs text-brand-600 font-bold mt-1">Giám đốc Trung tâm</p>
+                <p className="text-[10px] text-slate-400">Trung tâm Ngoại Ngữ English Mrs. Dung</p>
               </div>
             </div>
           </div>

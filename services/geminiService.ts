@@ -324,6 +324,32 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   🎓 YOU ARE A PROFESSIONAL ENGLISH TEACHER WITH 20 YEARS EXPERIENCE
   You must create exercises with 100% grammatical accuracy. Every answer key must be verified.
   
+  ===== ⚠️ CRITICAL: 80% CONTENT MUST USE INPUT VOCABULARY/GRAMMAR =====
+  
+  MANDATORY RULE: At least 80% of ALL exercises (32/40 questions) MUST directly use the vocabulary, 
+  grammar patterns, and concepts from the INPUT SOURCE provided by the user.
+  
+  EXAMPLE: If user provides these adverbs: "Always, Usually, Often, Sometimes, Never, Every day..."
+  Then 80% of your exercises MUST:
+  ✓ Multiple Choice: "I ____ go to school on foot." (A) always (B) tomorrow (C) yesterday (D) last week
+  ✓ Fill-blank: "She ____ drinks coffee in the morning." → Answer: usually/always/often
+  ✓ Scramble: "always / I / breakfast / have / at 7 AM / ." → "I always have breakfast at 7 AM."
+  ✓ Error ID: "He (A) go (B) always (C) to school (D) late." → Error at (A) or (B) based on grammar rules
+  
+  ❌ DO NOT create exercises about random topics unrelated to the input!
+  ❌ DO NOT ignore the input vocabulary and create exercises about colors when user gave time adverbs!
+  
+  HOW TO CALCULATE 80%:
+  - Total exercises = 10 MC + 10 Fill + 10 Scramble + 10 Error = 40 questions
+  - 80% = At least 32 questions MUST use input vocabulary/grammar
+  - Remaining 20% (8 questions) can introduce related/supporting concepts
+  
+  VERIFICATION CHECKLIST:
+  □ Did I use at least 8/10 Multiple Choice questions with input vocabulary?
+  □ Did I use at least 8/10 Fill-blank questions with input vocabulary?
+  □ Did I use at least 8/10 Scramble sentences with input vocabulary?
+  □ Did I use at least 8/10 Error ID sentences with input vocabulary?
+  
   ===== FUNDAMENTAL GRAMMAR RULES CHECKLIST =====
   Before creating ANY exercise, verify these 15 grammar rules:
   
@@ -472,11 +498,44 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   - Double-check: "about the service" is NOT an error!
 
   📝 SCRAMBLE (scramble):
-  - "scrambled": EXACT same words as correctSentence, just shuffled
-  - "correctSentence": The ONLY grammatically valid arrangement
-  - ⚠️ VERIFY: Count words - scrambled array must have same count as sentence words
-  - ⚠️ VERIFY: The correct sentence follows all grammar rules
+  ⚠️ MOST COMMON GRAMMAR MISTAKES IN SCRAMBLE - MUST AVOID:
+  
+  CRITICAL RULE: "to + VERB" = INFINITIVE = verb in BASE FORM (no -s/-es/-ed)
+  ❌ WRONG: "She decides to buys" - NEVER add -s after "to"!
+  ✓ CORRECT: "She decides to buy"
+  ❌ WRONG: "I want to goes" 
+  ✓ CORRECT: "I want to go"
+  ❌ WRONG: "They need to eats"
+  ✓ CORRECT: "They need to eat"
+  
+  VERIFICATION PROCESS FOR EACH SCRAMBLE:
+  1. Write the correctSentence FIRST - verify it's 100% grammatically correct
+  2. Check EVERY verb: Is there "to" before it? → Must be base form (no -s)!
+  3. Check modal verbs (can/will/should/must) → Next verb must be base form
+  4. Check subject-verb agreement: He/She/It + V-s, I/You/We/They + V (base)
+  5. THEN split into words for scrambled array
+  6. VERIFY: Every word in scrambled = Every word in correctSentence (exact match)
+  
+  FORMAT:
+  - "correctSentence": Grammatically perfect sentence (WRITE THIS FIRST!)
+  - "scrambled": EXACT same words as correctSentence, just shuffled (NO EXTRA WORDS!)
   - "translation": Natural Vietnamese translation
+  
+  ⚠️ ABSOLUTELY NO EXTRA WORDS in scrambled array!
+  If correctSentence = "I like pizza." then scrambled = ["pizza", "I", "like", "."]
+  ❌ WRONG: scrambled = ["to", "I", "pizza", "like", "."] (has extra "to" not in sentence!)
+  
+  SCRAMBLE VALIDATION EXAMPLES:
+  Example 1:
+  ✓ correctSentence: "She wants to buy a new dress."
+  ✓ Check: "to buy" = to + base form ✓
+  ✓ scrambled: ["dress", "buy", "a", "to", "She", "wants", "new", "."] ✓ All 8 words match
+  
+  Example 2:
+  ✓ correctSentence: "We should protect the environment."
+  ✓ Check: "should protect" = modal + base form ✓
+  ✓ scrambled: ["the", "protect", "We", "should", "environment", "."] ✓ All 6 words match
+  ❌ WRONG scrambled: ["to", "the", "protect", "We", "should", "environment", "."] ← Extra "to"!
 
   MANDATORY REQUIREMENTS:
   1. Extract 100% of vocabulary and grammar from source
