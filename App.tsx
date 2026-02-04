@@ -268,6 +268,27 @@ function App() {
             ) : (
               <div className="space-y-8 sm:space-y-16 animate-fade-in">
                 <div className="text-center relative py-6 sm:py-10 bg-white rounded-2xl sm:rounded-[4rem] shadow-xl border-2 sm:border-4 border-brand-50 ring-2 sm:ring-4 ring-white overflow-hidden">
+                  {/* Nút tạo bài học mới */}
+                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+                    <button
+                      onClick={() => {
+                        setLesson(null);
+                        setTopic('');
+                        setLessonText('');
+                        setSelectedFiles([]);
+                        setStudentName('');
+                        setMegaScores({ mc: 0, scramble: 0, fill: 0, error: 0, match: 0 });
+                        setShowCertificate(false);
+                        setError(null);
+                      }}
+                      className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-3 py-2 sm:px-5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95"
+                    >
+                      <span className="text-base sm:text-lg">➕</span>
+                      <span className="hidden sm:inline">Tạo bài học mới</span>
+                      <span className="sm:hidden">Bài mới</span>
+                    </button>
+                  </div>
+
                   <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-brand-800 uppercase font-display mb-4 sm:mb-6 px-4 break-words">{lesson.topic}</h1>
                   <div className="flex flex-col items-center gap-4">
                     <label className="text-brand-600 font-black uppercase tracking-[0.2em] text-base font-sans">Chào mừng con:</label>
