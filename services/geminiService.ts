@@ -701,8 +701,46 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   2. Create EXACTLY 10 Multiple Choice Questions
   3. Create EXACTLY 10 Scramble Questions
   4. Create EXACTLY 10 Fill-in-the-blank Questions
-  5. Create EXACTLY 10 Error Identification Questions
-  NOTE: Do NOT create Listening Questions.
+  5. Create EXACTLY 10 Vocabulary Translation Questions (vocabTranslation)
+  6. Create EXACTLY 10 True/False Reading Comprehension Questions (trueFalse)
+  NOTE: Do NOT create Listening Questions or Error Identification Questions.
+  
+  ===== 📝 VOCABULARY TRANSLATION (vocabTranslation) =====
+  Bài tập từ vựng Anh-Việt: Cho từ tiếng Anh, chọn 1 trong 4 nghĩa tiếng Việt đúng.
+  
+  STRUCTURE:
+  {
+    "id": "vocab_1",
+    "word": "apple",
+    "options": ["quả táo", "quả cam", "quả chuối", "quả lê"],
+    "correctAnswer": 0,
+    "explanation": "'apple' nghĩa là 'quả táo'"
+  }
+  
+  RULES:
+  - "word": Từ tiếng Anh từ bài học vocabulary
+  - "options": 4 nghĩa tiếng Việt (1 đúng, 3 sai nhưng hợp lý)
+  - "correctAnswer": Index của đáp án đúng (0-3)
+  - ⚠️ 3 đáp án sai PHẢI là từ cùng chủ đề, KHÔNG quá dễ nhận ra
+  - ⚠️ PHẢI sử dụng từ vựng từ vocabulary section của bài học
+  
+  ===== 📝 TRUE/FALSE READING (trueFalse) =====
+  Bài tập đọc hiểu True/False: Dựa trên nội dung reading passage.
+  
+  STRUCTURE:
+  {
+    "id": "tf_1",
+    "statement": "The cat is sleeping on the bed.",
+    "isTrue": true,
+    "explanation": "Đúng. Theo bài đọc, con mèo đang ngủ trên giường."
+  }
+  
+  RULES:
+  - "statement": Một câu khẳng định về nội dung bài đọc (tiếng Anh)
+  - "isTrue": true hoặc false
+  - "explanation": Giải thích bằng tiếng Việt tại sao đúng/sai
+  - ⚠️ Statements PHẢI dựa trên reading passage content
+  - ⚠️ 5 câu TRUE, 5 câu FALSE (cân bằng)
   
   ===== FINAL QUALITY ASSURANCE =====
   Before submitting, verify EACH question:
@@ -710,11 +748,12 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   ✅ CHECKLIST FOR EVERY QUESTION:
   □ Does the correct answer follow the 15 grammar rules?
   □ Is there only ONE possible correct answer?
-  □ For Error ID: Did I verify EACH option (A), (B), (C), (D)?
-  □ For Error ID: Is correctOptionIndex pointing to the ACTUAL error?
-  □ For Error ID: Are the other 3 options grammatically correct?
   □ For Scramble: Does scrambled array contain EXACT same words as correctSentence?
   □ For Scramble: No extra words, no missing words, no changed words?
+  □ For VocabTranslation: Is the word from the vocabulary section?
+  □ For VocabTranslation: Are all 4 options reasonable Vietnamese translations?
+  □ For TrueFalse: Is the statement based on the reading passage?
+  □ For TrueFalse: Is the explanation accurate in Vietnamese?
   □ Is the explanation accurate and educational?
   
   ⚠️ IF UNSURE: Re-read the 15 grammar rules and apply them systematically
@@ -771,7 +810,7 @@ const safeJsonParse = <T>(text: string): T => {
   } catch (e) { throw new Error("Lỗi xử lý dữ liệu AI."); }
 };
 
-const lessonSchema = { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, vocabulary: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: { type: Type.STRING }, emoji: { type: Type.STRING }, ipa: { type: Type.STRING }, meaning: { type: Type.STRING }, example: { type: Type.STRING }, sentenceMeaning: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["word", "ipa", "meaning", "example", "type", "emoji"] } }, grammar: { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, explanation: { type: Type.STRING }, examples: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["topic", "explanation", "examples"] }, reading: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, passage: { type: Type.STRING }, translation: { type: Type.STRING }, comprehension: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } } }, required: ["title", "passage", "translation", "comprehension"] }, practice: { type: Type.OBJECT, properties: { listening: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, audioText: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "audioText", "options", "correctAnswer"] } }, megaTest: { type: Type.OBJECT, properties: { multipleChoice: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } }, scramble: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, scrambled: { type: Type.ARRAY, items: { type: Type.STRING } }, correctSentence: { type: Type.STRING }, translation: { type: Type.STRING } }, required: ["id", "scrambled", "correctSentence"] } }, fillBlank: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, correctAnswer: { type: Type.STRING }, clueEmoji: { type: Type.STRING } }, required: ["id", "question", "correctAnswer"] } }, errorId: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, sentence: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctOptionIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "sentence", "correctOptionIndex"] } }, matching: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, left: { type: Type.STRING }, right: { type: Type.STRING } }, required: ["id", "left", "right"] } } }, required: ["multipleChoice", "scramble", "fillBlank", "errorId", "matching"] } }, required: ["listening", "megaTest"] }, teacherTips: { type: Type.STRING } }, required: ["topic", "vocabulary", "grammar", "reading", "practice", "teacherTips"] };
+const lessonSchema = { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, vocabulary: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: { type: Type.STRING }, emoji: { type: Type.STRING }, ipa: { type: Type.STRING }, meaning: { type: Type.STRING }, example: { type: Type.STRING }, sentenceMeaning: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["word", "ipa", "meaning", "example", "type", "emoji"] } }, grammar: { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, explanation: { type: Type.STRING }, examples: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["topic", "explanation", "examples"] }, reading: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, passage: { type: Type.STRING }, translation: { type: Type.STRING }, comprehension: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } } }, required: ["title", "passage", "translation", "comprehension"] }, practice: { type: Type.OBJECT, properties: { listening: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, audioText: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "audioText", "options", "correctAnswer"] } }, megaTest: { type: Type.OBJECT, properties: { multipleChoice: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } }, scramble: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, scrambled: { type: Type.ARRAY, items: { type: Type.STRING } }, correctSentence: { type: Type.STRING }, translation: { type: Type.STRING } }, required: ["id", "scrambled", "correctSentence"] } }, fillBlank: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, correctAnswer: { type: Type.STRING }, clueEmoji: { type: Type.STRING } }, required: ["id", "question", "correctAnswer"] } }, errorId: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, sentence: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctOptionIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "sentence", "correctOptionIndex"] } }, vocabTranslation: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, word: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "word", "options", "correctAnswer"] } }, trueFalse: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, statement: { type: Type.STRING }, isTrue: { type: Type.BOOLEAN }, explanation: { type: Type.STRING } }, required: ["id", "statement", "isTrue", "explanation"] } }, matching: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, left: { type: Type.STRING }, right: { type: Type.STRING } }, required: ["id", "left", "right"] } } }, required: ["multipleChoice", "scramble", "fillBlank", "vocabTranslation", "trueFalse", "matching"] } }, required: ["listening", "megaTest"] }, teacherTips: { type: Type.STRING } }, required: ["topic", "vocabulary", "grammar", "reading", "practice", "teacherTips"] };
 
 const contentResultSchema = {
   type: Type.OBJECT,

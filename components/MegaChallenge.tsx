@@ -4,11 +4,11 @@ import { PracticeContent } from '../types';
 
 interface MegaChallengeProps {
   megaData: PracticeContent['megaTest'];
-  onScoresUpdate?: (scores: { mc: number; scramble: number; fill: number; error: number; match: number }) => void;
+  onScoresUpdate?: (scores: { mc: number; scramble: number; fill: number; vocab: number; trueFalse: number }) => void;
 }
 
 export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScoresUpdate }) => {
-  const [activeZone, setActiveZone] = useState<'mc' | 'fill' | 'error' | 'scramble'>('mc');
+  const [activeZone, setActiveZone] = useState<'mc' | 'fill' | 'vocab' | 'scramble' | 'trueFalse'>('mc');
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
@@ -43,10 +43,12 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
           if (isAllCorrect) correct++;
         }
       });
-    } else if (zone === 'error') {
-      (megaData.errorId || []).forEach(q => { if (submitted[q.id] && answers[q.id] === q.correctOptionIndex) correct++; });
+    } else if (zone === 'vocab') {
+      (megaData.vocabTranslation || []).forEach(q => { if (submitted[q.id] && answers[q.id] === q.correctAnswer) correct++; });
     } else if (zone === 'scramble') {
       (megaData.scramble || []).forEach(q => { if (submitted[q.id] && normalizeStrict(answers[q.id] || "") === normalizeStrict(q.correctSentence)) correct++; });
+    } else if (zone === 'trueFalse') {
+      (megaData.trueFalse || []).forEach(q => { if (submitted[q.id] && answers[q.id] === q.isTrue) correct++; });
     }
     return correct;
   };
@@ -57,8 +59,8 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
         mc: calculateZoneScore('mc'),
         scramble: calculateZoneScore('scramble'),
         fill: calculateZoneScore('fill'),
-        error: calculateZoneScore('error'),
-        match: 0
+        vocab: calculateZoneScore('vocab'),
+        trueFalse: calculateZoneScore('trueFalse')
       });
     }
   }, [submitted, megaData]);
@@ -68,13 +70,14 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
   return (
     <div className="bg-brand-900 rounded-[3rem] shadow-xl border-[8px] border-brand-800 overflow-hidden mb-12 font-sans">
       <div className="bg-brand-800 p-6 text-center border-b-2 border-brand-700">
-        <h2 className="text-xl md:text-2xl font-black text-white uppercase italic mb-4 tracking-tighter">🚀 40 MEGA CHALLENGES 🚀</h2>
+        <h2 className="text-xl md:text-2xl font-black text-white uppercase italic mb-4 tracking-tighter">🚀 50 MEGA CHALLENGES 🚀</h2>
         <div className="flex flex-wrap justify-center gap-2">
           {[
             { id: 'mc', label: '10 Quiz', icon: '📝' },
             { id: 'fill', label: '10 Điền từ', icon: '✏️' },
-            { id: 'error', label: '10 Tìm lỗi', icon: '🔍' },
+            { id: 'vocab', label: '10 Từ vựng', icon: '📚' },
             { id: 'scramble', label: '10 Sắp xếp', icon: '🧩' },
+            { id: 'trueFalse', label: '10 Đ/S', icon: '✅' },
           ].map(z => (
             <button key={z.id} onClick={() => setActiveZone(z.id as any)} className={`px-4 py-3 rounded-xl font-black text-sm flex items-center gap-2 transition-all ${activeZone === z.id ? 'bg-highlight-400 text-brand-900 scale-105 shadow-lg ring-2 ring-white/20' : 'bg-brand-700 text-brand-200 hover:bg-brand-600'}`}>
               <span className="text-xl">{z.icon}</span> {z.label}
@@ -166,75 +169,47 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
           </div>
         )}
 
-        {activeZone === 'error' && (
-          <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
-            {(megaData.errorId || []).map((q, idx) => {
+        {activeZone === 'vocab' && (
+          <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            {(megaData.vocabTranslation || []).map((q, idx) => {
               const userAns = answers[q.id];
-              const isCorrect = userAns === q.correctOptionIndex;
-
-              // Fallback: Parse options from sentence if options array is empty
-              // Matches patterns like "(A) more", "(B) big", etc.
-              let displayOptions = q.options || [];
-              if (displayOptions.length === 0 && q.sentence) {
-                const regex = /\(([A-D])\)\s*([^(]+?)(?=\s*\([A-D]\)|\.?\s*$)/gi;
-                const matches = [...q.sentence.matchAll(regex)];
-                if (matches.length > 0) {
-                  displayOptions = matches.map(m => `(${m[1]}) ${m[2].trim()}`);
-                }
-              }
-
-              // If still no options, create default A/B/C/D buttons
-              if (displayOptions.length === 0) {
-                displayOptions = ['(A)', '(B)', '(C)', '(D)'];
-              }
+              const isCorrect = userAns === q.correctAnswer;
 
               return (
-                <div key={q.id} className="bg-white p-4 sm:p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100 flex flex-col gap-6">
-                  <div className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
-                    <p className="text-slate-400 font-black uppercase text-[10px] mb-3 tracking-widest text-center">TÌM LỖI SAI CÂU {idx + 1}:</p>
-                    <p className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 text-center mb-6 leading-relaxed px-2">
-                      {q.sentence}
-                    </p>
-                    <p className="text-center text-sm text-slate-500 font-medium mb-4">👇 Chọn phần SAI trong câu:</p>
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      {displayOptions.map((opt, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctOptionIndex); }}
-                          disabled={submitted[q.id]}
-                          className={`min-h-[56px] p-3 sm:p-4 rounded-xl border-2 font-black text-left text-base sm:text-lg transition-all flex items-center gap-2 sm:gap-3 active:scale-95 ${submitted[q.id]
-                            ? i === q.correctOptionIndex
-                              ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
-                              : userAns === i
-                                ? 'bg-red-100 border-red-500 text-red-700'
-                                : 'bg-slate-50 border-slate-100 opacity-40'
-                            : 'bg-white border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:bg-brand-100'
-                            }`}
-                        >
-                          <span className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${submitted[q.id]
-                            ? i === q.correctOptionIndex
-                              ? 'bg-green-500 text-white'
-                              : userAns === i
-                                ? 'bg-red-500 text-white'
-                                : 'bg-slate-200 text-slate-400'
-                            : 'bg-brand-500 text-white'
-                            }`}>
-                            {String.fromCharCode(65 + i)}
-                          </span>
-                          <span className="flex-1">{opt}</span>
-                        </button>
-                      ))}
-                    </div>
+                <div key={q.id} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-slate-50 transition-all hover:border-brand-200">
+                  <div className="text-center mb-6">
+                    <p className="text-slate-400 font-black uppercase text-[10px] mb-2 tracking-widest">TỪ VỰNG CÂU {idx + 1}:</p>
+                    <p className="text-3xl md:text-4xl font-black text-brand-600 mb-2">"{q.word}"</p>
+                    <p className="text-sm text-slate-500">Chọn nghĩa tiếng Việt đúng:</p>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {(q.options || []).map((opt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctAnswer); }}
+                        disabled={submitted[q.id]}
+                        className={`p-4 rounded-xl border-2 font-black text-center text-base transition-all ${submitted[q.id]
+                          ? i === q.correctAnswer
+                            ? 'bg-green-100 border-green-500 text-green-700'
+                            : userAns === i
+                              ? 'bg-red-100 border-red-500 text-red-700'
+                              : 'bg-slate-50 opacity-50'
+                          : 'bg-white border-slate-100 hover:border-brand-300 hover:bg-brand-50 hover:-translate-y-1'
+                          }`}
+                      >
+                        <span className="mr-2 text-slate-400">{String.fromCharCode(65 + i)}.</span> {opt}
+                      </button>
+                    ))}
                   </div>
                   {submitted[q.id] && (
-                    <div className={`p-4 rounded-2xl border-l-4 ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-amber-50 border-amber-500'}`}>
+                    <div className={`mt-4 p-4 rounded-2xl border-l-4 ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-amber-50 border-amber-500'}`}>
                       <div className="flex items-start gap-3">
-                        <span className="text-3xl">{isCorrect ? '🏆' : '💡'}</span>
+                        <span className="text-3xl">{isCorrect ? '🌟' : '💡'}</span>
                         <div>
                           <p className="font-black text-sm mb-1 text-slate-800">
-                            {isCorrect ? 'Chính xác! Con tìm ra lỗi sai rồi!' : `Chưa đúng! Lỗi sai là ở: ${displayOptions[q.correctOptionIndex] || 'N/A'}`}
+                            {isCorrect ? 'Tuyệt vời! Con giỏi lắm!' : `Chưa đúng! Đáp án đúng là: ${String.fromCharCode(65 + q.correctAnswer)}. ${q.options[q.correctAnswer]}`}
                           </p>
-                          <p className="text-xs italic text-slate-600 leading-relaxed">{q.explanation}</p>
+                          {q.explanation && <p className="text-xs italic text-slate-600 leading-relaxed">{q.explanation}</p>}
                         </div>
                       </div>
                     </div>
@@ -276,6 +251,69 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
                             {isCorrect ? 'Tuyệt vời! Con sắp xếp đúng rồi!' : `Chưa đúng! Câu đúng là: ${q.correctSentence}`}
                           </p>
                           {q.translation && <p className="text-xs italic text-slate-600">({q.translation})</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {activeZone === 'trueFalse' && (
+          <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            {(megaData.trueFalse || []).map((q, idx) => {
+              const userAns = answers[q.id];
+              const isCorrect = userAns === q.isTrue;
+
+              return (
+                <div key={q.id} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-slate-50 transition-all hover:border-brand-200">
+                  <div className="mb-6">
+                    <p className="text-slate-400 font-black uppercase text-[10px] mb-3 tracking-widest text-center">ĐỌC HIỂU CÂU {idx + 1}:</p>
+                    <p className="text-lg md:text-xl font-black text-slate-800 text-center leading-relaxed px-4">
+                      "{q.statement}"
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => { handleAnswer(q.id, true); checkFinal(q.id, true === q.isTrue); }}
+                      disabled={submitted[q.id]}
+                      className={`p-5 rounded-xl border-2 font-black text-center text-lg transition-all flex items-center justify-center gap-3 ${submitted[q.id]
+                        ? q.isTrue === true
+                          ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
+                          : userAns === true
+                            ? 'bg-red-100 border-red-500 text-red-700'
+                            : 'bg-slate-50 opacity-40'
+                        : 'bg-green-50 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-100 active:scale-95'
+                        }`}
+                    >
+                      <span className="text-2xl">✅</span> TRUE
+                    </button>
+                    <button
+                      onClick={() => { handleAnswer(q.id, false); checkFinal(q.id, false === q.isTrue); }}
+                      disabled={submitted[q.id]}
+                      className={`p-5 rounded-xl border-2 font-black text-center text-lg transition-all flex items-center justify-center gap-3 ${submitted[q.id]
+                        ? q.isTrue === false
+                          ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-200'
+                          : userAns === false
+                            ? 'bg-red-100 border-red-500 text-red-700'
+                            : 'bg-slate-50 opacity-40'
+                        : 'bg-red-50 border-red-200 text-red-700 hover:border-red-400 hover:bg-red-100 active:scale-95'
+                        }`}
+                    >
+                      <span className="text-2xl">❌</span> FALSE
+                    </button>
+                  </div>
+                  {submitted[q.id] && (
+                    <div className={`mt-4 p-4 rounded-2xl border-l-4 ${isCorrect ? 'bg-green-50 border-green-500' : 'bg-amber-50 border-amber-500'}`}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-3xl">{isCorrect ? '🏆' : '💡'}</span>
+                        <div>
+                          <p className="font-black text-sm mb-1 text-slate-800">
+                            {isCorrect ? 'Chính xác! Con làm đúng rồi!' : `Chưa đúng! Đáp án đúng là: ${q.isTrue ? 'TRUE' : 'FALSE'}`}
+                          </p>
+                          <p className="text-xs italic text-slate-600 leading-relaxed">{q.explanation}</p>
                         </div>
                       </div>
                     </div>

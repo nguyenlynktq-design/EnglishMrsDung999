@@ -19,9 +19,9 @@ export interface GrammarSection {
 
 export interface ListeningQ {
   id: string;
-  audioText: string; 
-  options: string[]; 
-  correctAnswer: number; 
+  audioText: string;
+  options: string[];
+  correctAnswer: number;
   explanation: string;
 }
 
@@ -56,15 +56,30 @@ export interface FillInputQ {
 export interface ErrorIdQ {
   id: string;
   sentence: string;
-  options: string[]; 
+  options: string[];
   correctOptionIndex: number;
   explanation: string;
 }
 
+export interface VocabTranslationQ {
+  id: string;
+  word: string;           // English word
+  options: string[];      // 4 Vietnamese meaning options
+  correctAnswer: number;  // Index of correct option (0-3)
+  explanation?: string;
+}
+
+export interface TrueFalseQ {
+  id: string;
+  statement: string;      // Statement about the passage
+  isTrue: boolean;        // True or False
+  explanation: string;    // Vietnamese explanation
+}
+
 export interface MatchingPair {
   id: string;
-  left: string; 
-  right: string; 
+  left: string;
+  right: string;
 }
 
 export interface ReadingAdventure {
@@ -81,13 +96,15 @@ export interface HomeworkTask {
 }
 
 export interface PracticeContent {
-  listening: ListeningQ[]; 
+  listening: ListeningQ[];
   megaTest: {
-    multipleChoice: MultipleChoiceQ[]; 
-    scramble: ScrambleQ[]; 
-    fillBlank: FillInputQ[]; 
-    errorId: ErrorIdQ[]; 
-    matching: MatchingPair[]; 
+    multipleChoice: MultipleChoiceQ[];
+    scramble: ScrambleQ[];
+    fillBlank: FillInputQ[];
+    errorId: ErrorIdQ[];             // deprecated, kept for backward compat
+    vocabTranslation: VocabTranslationQ[]; // NEW: 10 vocab questions
+    trueFalse: TrueFalseQ[];               // NEW: 10 true/false questions
+    matching: MatchingPair[];
   };
 }
 
@@ -110,7 +127,7 @@ export interface MindMapData {
   center: {
     title_en: string;
     title_vi: string;
-    emoji?: string; 
+    emoji?: string;
   };
   nodes: Array<{
     text_en: string;
