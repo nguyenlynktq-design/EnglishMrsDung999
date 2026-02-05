@@ -121,7 +121,7 @@ export const LessonCertificate: React.FC<LessonCertificateProps> = ({
                 <div className="bg-amber-100 border-2 border-amber-300 rounded-2xl px-5 py-3 shadow-md">
                   <p className="text-3xl mb-1">{evaluation.emoji}</p>
                   <p className="text-base font-black text-amber-700">{evaluation.text}</p>
-                  <p className="text-xs text-slate-500 mt-1">Đúng {totalCorrect}/40 câu</p>
+                  <p className="text-xs text-slate-500 mt-1">Đúng {totalCorrect}/50 câu</p>
                 </div>
               </div>
             </div>

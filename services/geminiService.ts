@@ -724,23 +724,68 @@ export const generateLessonPlan = async (topicInput?: string, textInput?: string
   - ⚠️ 3 đáp án sai PHẢI là từ cùng chủ đề, KHÔNG quá dễ nhận ra
   - ⚠️ PHẢI sử dụng từ vựng từ vocabulary section của bài học
   
-  ===== 📝 TRUE/FALSE READING (trueFalse) =====
-  Bài tập đọc hiểu True/False: Dựa trên nội dung reading passage.
+  ===== 📝 TRUE/FALSE READING (trueFalse + trueFalsePassage) =====
+  Bài tập đọc hiểu True/False: MỘT bài đọc cố định + 10 câu hỏi True/False dựa trên bài đọc đó.
   
-  STRUCTURE:
+  ⚠️ QUAN TRỌNG: BẠN PHẢI TẠO 2 PHẦN:
+  1. "trueFalsePassage": Một đoạn văn tiếng Anh 150-200 từ về chủ đề bài học
+  2. "trueFalse": 10 câu hỏi True/False DỰA TRÊN đoạn văn đó
+  
+  🎯 CRITICAL: PASSAGE DIFFICULTY MUST MATCH INPUT VOCABULARY LEVEL 🎯
+  
+  STEP 1 - ANALYZE INPUT DIFFICULTY:
+  Xem xét từ vựng và câu ví dụ đầu vào để xác định trình độ:
+  
+  📗 BEGINNER (Cơ bản - A1/A2):
+  - Từ vựng đơn giản: apple, cat, dog, school, family, big, small
+  - Câu ví dụ ngắn: "He has a bat.", "I like pizza.", "She is happy."
+  - Cấu trúc: Subject + Verb + Object (3-6 từ)
+  → Tạo passage với câu ngắn 5-8 từ, từ vựng đơn giản, thì hiện tại đơn
+  
+  📘 INTERMEDIATE (Trung cấp - B1):
+  - Từ vựng phong phú hơn: environment, technology, experience
+  - Câu ví dụ dài hơn: "I usually go to school by bus every morning."
+  - Cấu trúc: Có trạng từ, giới từ (6-12 từ)
+  → Tạo passage với câu 8-15 từ, nhiều thì, từ nối đơn giản
+  
+  📙 ADVANCED (Nâng cao - B2+):
+  - Từ vựng học thuật: sustainable, consequence, phenomenon
+  - Câu phức tạp với mệnh đề phụ, infinitive, gerund
+  → Tạo passage với câu phức, từ nối logic, nhiều thì
+  
+  STEP 2 - USE INPUT VOCABULARY IN PASSAGE:
+  ⚠️ BẮT BUỘC: Passage PHẢI sử dụng ÍT NHẤT 5 từ vựng từ vocabulary section đầu vào!
+  Điều này giúp học sinh ôn tập từ vựng đã học qua ngữ cảnh đọc hiểu.
+  
+  EXAMPLE - BEGINNER LEVEL:
+  Input vocab: cat, dog, big, small, happy
+  → trueFalsePassage: "I have a cat. My cat is small. It is very happy. My friend has a dog. The dog is big. The cat and the dog are friends. They play together every day."
+  
+  EXAMPLE - INTERMEDIATE LEVEL:  
+  Input vocab: environment, protect, recycle, pollution, nature
+  → trueFalsePassage: "Today, many people want to protect the environment. They recycle paper, plastic, and glass. Pollution is a big problem in cities. We should take care of nature and plant more trees. Everyone can help protect our planet."
+  
+  STRUCTURE FOR trueFalsePassage:
+  "trueFalsePassage": "[Đoạn văn 150-200 từ PHÙ HỢP VỚI TRÌNH ĐỘ từ vựng đầu vào]"
+  
+  STRUCTURE FOR trueFalse:
   {
     "id": "tf_1",
-    "statement": "The cat is sleeping on the bed.",
-    "isTrue": true,
-    "explanation": "Đúng. Theo bài đọc, con mèo đang ngủ trên giường."
+    "statement": "Tom is a teacher.",
+    "isTrue": false,
+    "explanation": "Sai. Theo bài đọc, Tom là học sinh (student), không phải giáo viên."
   }
   
   RULES:
-  - "statement": Một câu khẳng định về nội dung bài đọc (tiếng Anh)
+  - "trueFalsePassage": 150-200 từ, ĐỘ KHÓ TƯƠNG ĐƯƠNG với từ vựng đầu vào
+  - "trueFalsePassage": PHẢI sử dụng ít nhất 5 từ từ vocabulary section
+  - "statement": Một câu khẳng định VỀ NỘI DUNG BÀI ĐỌC (tiếng Anh)
   - "isTrue": true hoặc false
-  - "explanation": Giải thích bằng tiếng Việt tại sao đúng/sai
-  - ⚠️ Statements PHẢI dựa trên reading passage content
+  - "explanation": Giải thích bằng tiếng Việt, trích dẫn thông tin từ bài đọc
+  - ⚠️ TẤT CẢ 10 statements PHẢI dựa trên trueFalsePassage
   - ⚠️ 5 câu TRUE, 5 câu FALSE (cân bằng)
+  - ⚠️ KHÔNG được tạo statement về thông tin không có trong bài đọc
+  - ⚠️ Câu hỏi cũng phải PHÙ HỢP trình độ (câu hỏi đơn giản cho beginner)
   
   ===== FINAL QUALITY ASSURANCE =====
   Before submitting, verify EACH question:
@@ -810,7 +855,7 @@ const safeJsonParse = <T>(text: string): T => {
   } catch (e) { throw new Error("Lỗi xử lý dữ liệu AI."); }
 };
 
-const lessonSchema = { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, vocabulary: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: { type: Type.STRING }, emoji: { type: Type.STRING }, ipa: { type: Type.STRING }, meaning: { type: Type.STRING }, example: { type: Type.STRING }, sentenceMeaning: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["word", "ipa", "meaning", "example", "type", "emoji"] } }, grammar: { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, explanation: { type: Type.STRING }, examples: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["topic", "explanation", "examples"] }, reading: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, passage: { type: Type.STRING }, translation: { type: Type.STRING }, comprehension: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } } }, required: ["title", "passage", "translation", "comprehension"] }, practice: { type: Type.OBJECT, properties: { listening: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, audioText: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "audioText", "options", "correctAnswer"] } }, megaTest: { type: Type.OBJECT, properties: { multipleChoice: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } }, scramble: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, scrambled: { type: Type.ARRAY, items: { type: Type.STRING } }, correctSentence: { type: Type.STRING }, translation: { type: Type.STRING } }, required: ["id", "scrambled", "correctSentence"] } }, fillBlank: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, correctAnswer: { type: Type.STRING }, clueEmoji: { type: Type.STRING } }, required: ["id", "question", "correctAnswer"] } }, errorId: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, sentence: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctOptionIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "sentence", "correctOptionIndex"] } }, vocabTranslation: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, word: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "word", "options", "correctAnswer"] } }, trueFalse: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, statement: { type: Type.STRING }, isTrue: { type: Type.BOOLEAN }, explanation: { type: Type.STRING } }, required: ["id", "statement", "isTrue", "explanation"] } }, matching: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, left: { type: Type.STRING }, right: { type: Type.STRING } }, required: ["id", "left", "right"] } } }, required: ["multipleChoice", "scramble", "fillBlank", "vocabTranslation", "trueFalse", "matching"] } }, required: ["listening", "megaTest"] }, teacherTips: { type: Type.STRING } }, required: ["topic", "vocabulary", "grammar", "reading", "practice", "teacherTips"] };
+const lessonSchema = { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, vocabulary: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { word: { type: Type.STRING }, emoji: { type: Type.STRING }, ipa: { type: Type.STRING }, meaning: { type: Type.STRING }, example: { type: Type.STRING }, sentenceMeaning: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["word", "ipa", "meaning", "example", "type", "emoji"] } }, grammar: { type: Type.OBJECT, properties: { topic: { type: Type.STRING }, explanation: { type: Type.STRING }, examples: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["topic", "explanation", "examples"] }, reading: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, passage: { type: Type.STRING }, translation: { type: Type.STRING }, comprehension: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } } }, required: ["title", "passage", "translation", "comprehension"] }, practice: { type: Type.OBJECT, properties: { listening: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, audioText: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "audioText", "options", "correctAnswer"] } }, megaTest: { type: Type.OBJECT, properties: { multipleChoice: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "question", "options", "correctAnswer"] } }, scramble: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, scrambled: { type: Type.ARRAY, items: { type: Type.STRING } }, correctSentence: { type: Type.STRING }, translation: { type: Type.STRING } }, required: ["id", "scrambled", "correctSentence"] } }, fillBlank: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, question: { type: Type.STRING }, correctAnswer: { type: Type.STRING }, clueEmoji: { type: Type.STRING } }, required: ["id", "question", "correctAnswer"] } }, errorId: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, sentence: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctOptionIndex: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "sentence", "correctOptionIndex"] } }, vocabTranslation: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, word: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.INTEGER }, explanation: { type: Type.STRING } }, required: ["id", "word", "options", "correctAnswer"] } }, trueFalsePassage: { type: Type.STRING }, trueFalse: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, statement: { type: Type.STRING }, isTrue: { type: Type.BOOLEAN }, explanation: { type: Type.STRING } }, required: ["id", "statement", "isTrue", "explanation"] } }, matching: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, left: { type: Type.STRING }, right: { type: Type.STRING } }, required: ["id", "left", "right"] } } }, required: ["multipleChoice", "scramble", "fillBlank", "vocabTranslation", "trueFalsePassage", "trueFalse", "matching"] } }, required: ["listening", "megaTest"] }, teacherTips: { type: Type.STRING } }, required: ["topic", "vocabulary", "grammar", "reading", "practice", "teacherTips"] };
 
 const contentResultSchema = {
   type: Type.OBJECT,

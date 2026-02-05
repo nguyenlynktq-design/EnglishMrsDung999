@@ -104,6 +104,7 @@ export interface PracticeContent {
     errorId: ErrorIdQ[];             // deprecated, kept for backward compat
     vocabTranslation: VocabTranslationQ[]; // NEW: 10 vocab questions
     trueFalse: TrueFalseQ[];               // NEW: 10 true/false questions
+    trueFalsePassage?: string;             // Fixed reading passage for True/False questions
     matching: MatchingPair[];
   };
 }

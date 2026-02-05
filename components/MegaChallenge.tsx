@@ -263,6 +263,25 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
 
         {activeZone === 'trueFalse' && (
           <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            {/* Fixed Reading Passage at the top */}
+            {megaData.trueFalsePassage && (
+              <div className="bg-gradient-to-br from-brand-50 to-white p-6 md:p-8 rounded-[2rem] shadow-xl border-2 border-brand-100 mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-4xl">📖</span>
+                  <div>
+                    <h3 className="text-xl md:text-2xl font-black text-brand-800 uppercase tracking-tight">Bài Đọc Hiểu</h3>
+                    <p className="text-sm text-slate-500 font-semibold">Đọc kỹ đoạn văn rồi trả lời 10 câu hỏi True/False bên dưới</p>
+                  </div>
+                </div>
+                <div className="bg-white p-5 md:p-6 rounded-2xl border border-brand-100 shadow-inner">
+                  <p className="text-base md:text-lg text-slate-700 leading-relaxed whitespace-pre-line font-medium">
+                    {megaData.trueFalsePassage}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 10 True/False Questions */}
             {(megaData.trueFalse || []).map((q, idx) => {
               const userAns = answers[q.id];
               const isCorrect = userAns === q.isTrue;
@@ -270,7 +289,7 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
               return (
                 <div key={q.id} className="bg-white p-6 rounded-[2rem] shadow-lg border-2 border-slate-50 transition-all hover:border-brand-200">
                   <div className="mb-6">
-                    <p className="text-slate-400 font-black uppercase text-[10px] mb-3 tracking-widest text-center">ĐỌC HIỂU CÂU {idx + 1}:</p>
+                    <p className="text-slate-400 font-black uppercase text-[10px] mb-3 tracking-widest text-center">CÂU HỎI {idx + 1}/10</p>
                     <p className="text-lg md:text-xl font-black text-slate-800 text-center leading-relaxed px-4">
                       "{q.statement}"
                     </p>
