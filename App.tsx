@@ -54,7 +54,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
   // Removed listeningCorrect since listening section was removed
-  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0 });
+  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0, listen: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
 
   // API Key & Settings Management
@@ -84,13 +84,14 @@ function App() {
     }
   };
 
-  // Calculate total correct answers from all 5 exercise types (50 questions total)
-  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.vocab + megaScores.tf;
+  // Calculate total correct answers from all 6 exercise types (50 questions total)
+  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.vocab + megaScores.tf + megaScores.listen;
   const totalQuestions = (lesson?.practice?.megaTest?.multipleChoice?.length || 0) +
     (lesson?.practice?.megaTest?.scramble?.length || 0) +
     (lesson?.practice?.megaTest?.fillBlank?.length || 0) +
     (lesson?.practice?.megaTest?.vocabTranslation?.length || 0) +
-    (lesson?.practice?.megaTest?.trueFalse?.length || 0);
+    (lesson?.practice?.megaTest?.trueFalse?.length || 0) +
+    (lesson?.practice?.listening?.length || 0);
 
   const handleGenerate = async () => {
     // Check API key first
@@ -290,7 +291,7 @@ function App() {
                         setLessonText('');
                         setSelectedFiles([]);
                         setStudentName('');
-                        setMegaScores({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0 });
+                        setMegaScores({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0, listen: 0 });
                         setShowCertificate(false);
                         setError(null);
                       }}
@@ -334,8 +335,8 @@ function App() {
                   </div>
                 </div>
 
-                {/* Listening section removed */}
-                {lesson.practice?.megaTest && <MegaChallenge megaData={lesson.practice.megaTest} onScoresUpdate={setMegaScores} />}
+                {/* Listening section restored */}
+                {lesson.practice?.megaTest && <MegaChallenge megaData={lesson.practice.megaTest} listeningData={lesson.practice.listening} onScoresUpdate={setMegaScores} />}
 
                 <div className="text-center py-8 sm:py-12 bg-white rounded-xl sm:rounded-2xl shadow-lg border border-brand-100 flex flex-col items-center gap-4 sm:gap-6 relative overflow-hidden">
                   <MrsDungLogo className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-lg" color="#15803d" />

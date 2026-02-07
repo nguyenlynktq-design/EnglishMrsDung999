@@ -50,7 +50,9 @@ export interface FillInputQ {
   id: string;
   question: string;
   correctAnswer: string;
+  alternativeAnswers?: string[];  // Alternative correct answers (e.g., ["though"] when correctAnswer is "although")
   clueEmoji: string;
+  explanation?: string;
 }
 
 export interface ErrorIdQ {
