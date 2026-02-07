@@ -12,7 +12,7 @@ import {
 
 interface MegaChallengeProps {
   megaData: PracticeContent['megaTest'];
-  onScoresUpdate?: (scores: { mc: number; scramble: number; fill: number }) => void;
+  onScoresUpdate?: (scores: { mc: number; scramble: number; fill: number; vocab: number; tf: number }) => void;
 }
 
 // Collapsible Explanation Component
@@ -68,7 +68,7 @@ const CollapsibleExplanation: React.FC<{
 const SESSION_SEED = Date.now().toString();
 
 export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScoresUpdate }) => {
-  const [activeZone, setActiveZone] = useState<'mc' | 'fill' | 'scramble'>('mc');
+  const [activeZone, setActiveZone] = useState<'mc' | 'fill' | 'scramble' | 'vocab' | 'tf'>('mc');
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
 
@@ -108,6 +108,14 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
           if (result?.isCorrect) correct++;
         }
       });
+    } else if (zone === 'vocab') {
+      (megaData.vocabTranslation || []).forEach(q => {
+        if (submitted[q.id] && answers[q.id] === q.correctAnswer) correct++;
+      });
+    } else if (zone === 'tf') {
+      (megaData.trueFalse || []).forEach(q => {
+        if (submitted[q.id] && answers[q.id] === q.isTrue) correct++;
+      });
     }
     return correct;
   };
@@ -117,7 +125,9 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
       onScoresUpdate({
         mc: calculateZoneScore('mc'),
         scramble: calculateZoneScore('scramble'),
-        fill: calculateZoneScore('fill')
+        fill: calculateZoneScore('fill'),
+        vocab: calculateZoneScore('vocab'),
+        tf: calculateZoneScore('tf')
       });
     }
   }, [submitted, megaData]);
@@ -133,6 +143,8 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
             { id: 'mc', label: 'Quiz', icon: '📝', count: megaData.multipleChoice?.length || 0 },
             { id: 'fill', label: 'Điền từ', icon: '✏️', count: megaData.fillBlank?.length || 0 },
             { id: 'scramble', label: 'Sắp xếp', icon: '🧩', count: megaData.scramble?.length || 0 },
+            { id: 'vocab', label: 'Dịch nghĩa', icon: '📚', count: megaData.vocabTranslation?.length || 0 },
+            { id: 'tf', label: 'True/False', icon: '✅', count: megaData.trueFalse?.length || 0 },
           ].map(z => (
             <button key={z.id} onClick={() => setActiveZone(z.id as any)} className={`px-4 py-3 rounded-xl font-black text-sm flex items-center gap-2 transition-all ${activeZone === z.id ? 'bg-highlight-400 text-brand-900 scale-105 shadow-lg ring-2 ring-white/20' : 'bg-brand-700 text-brand-200 hover:bg-brand-600'}`}>
               <span className="text-xl">{z.icon}</span> {z.count} {z.label}
@@ -280,6 +292,119 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Vocabulary Translation Section - Dịch nghĩa Anh-Việt */}
+        {activeZone === 'vocab' && (
+          <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-2xl mb-6 text-center">
+              <h3 className="text-lg font-black">📚 Bài tập dịch nghĩa</h3>
+              <p className="text-sm opacity-90">Chọn nghĩa tiếng Việt đúng cho từ tiếng Anh</p>
+            </div>
+            {(megaData.vocabTranslation || []).map((q, idx) => (
+              <div key={q.id} className="bg-white p-4 md:p-6 rounded-[2rem] shadow-lg border-2 border-slate-50 transition-all hover:border-purple-200">
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="bg-purple-100 text-purple-600 px-3 py-1 rounded-lg font-bold text-sm">#{idx + 1}</span>
+                  <span className="text-3xl md:text-4xl font-black text-slate-800 tracking-wide">{q.word}</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(q.options || []).map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { handleAnswer(q.id, i); checkFinal(q.id, i === q.correctAnswer); }}
+                      disabled={submitted[q.id]}
+                      className={`p-4 rounded-xl border-2 font-bold text-left text-sm md:text-base transition-all ${submitted[q.id]
+                        ? i === q.correctAnswer
+                          ? 'bg-green-100 border-green-500 text-green-700'
+                          : answers[q.id] === i
+                            ? 'bg-red-100 border-red-500 text-red-700'
+                            : 'bg-slate-50 opacity-50'
+                        : 'bg-white border-slate-50 hover:border-purple-300 hover:bg-purple-50 active:scale-[0.98]'
+                        }`}
+                    >
+                      <span className="mr-3 text-slate-300">{String.fromCharCode(65 + i)}.</span> {opt}
+                    </button>
+                  ))}
+                </div>
+                {submitted[q.id] && (
+                  <CollapsibleExplanation
+                    isCorrect={answers[q.id] === q.correctAnswer}
+                    explanation={q.explanation || `'${q.word}' nghĩa là '${q.options[q.correctAnswer]}'`}
+                    correctAnswer={`${String.fromCharCode(65 + q.correctAnswer)}. ${q.options[q.correctAnswer]}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* True/False Reading Comprehension Section */}
+        {activeZone === 'tf' && (
+          <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
+            {/* Reading Passage */}
+            {megaData.trueFalsePassage && (
+              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-6 md:p-8 rounded-[2rem] shadow-lg border-2 border-teal-100 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-3xl">📖</span>
+                  <h3 className="text-lg font-black text-teal-700">Bài đọc hiểu</h3>
+                </div>
+                <p className="text-slate-700 leading-relaxed text-base md:text-lg whitespace-pre-line">
+                  {megaData.trueFalsePassage}
+                </p>
+              </div>
+            )}
+
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-4 rounded-2xl text-center">
+              <h3 className="text-lg font-black">✅ Câu hỏi True / False</h3>
+              <p className="text-sm opacity-90">Đọc bài văn và chọn True (Đúng) hoặc False (Sai)</p>
+            </div>
+
+            {(megaData.trueFalse || []).map((q, idx) => (
+              <div key={q.id} className="bg-white p-4 md:p-6 rounded-[2rem] shadow-lg border-2 border-slate-50 transition-all hover:border-teal-200">
+                <div className="mb-4">
+                  <span className="bg-teal-100 text-teal-600 px-3 py-1 rounded-lg font-bold text-sm">Câu {idx + 1}</span>
+                </div>
+                <p className="text-base md:text-lg font-bold text-slate-800 mb-4 leading-relaxed">{q.statement}</p>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => { handleAnswer(q.id, true); checkFinal(q.id, q.isTrue === true); }}
+                    disabled={submitted[q.id]}
+                    className={`flex-1 p-4 rounded-xl border-2 font-black text-lg transition-all ${submitted[q.id]
+                      ? q.isTrue === true
+                        ? 'bg-green-100 border-green-500 text-green-700'
+                        : answers[q.id] === true
+                          ? 'bg-red-100 border-red-500 text-red-700'
+                          : 'bg-slate-50 opacity-50'
+                      : 'bg-white border-slate-50 hover:border-green-300 hover:bg-green-50 active:scale-[0.98]'
+                      }`}
+                  >
+                    ✓ TRUE
+                  </button>
+                  <button
+                    onClick={() => { handleAnswer(q.id, false); checkFinal(q.id, q.isTrue === false); }}
+                    disabled={submitted[q.id]}
+                    className={`flex-1 p-4 rounded-xl border-2 font-black text-lg transition-all ${submitted[q.id]
+                      ? q.isTrue === false
+                        ? 'bg-green-100 border-green-500 text-green-700'
+                        : answers[q.id] === false
+                          ? 'bg-red-100 border-red-500 text-red-700'
+                          : 'bg-slate-50 opacity-50'
+                      : 'bg-white border-slate-50 hover:border-red-300 hover:bg-red-50 active:scale-[0.98]'
+                      }`}
+                  >
+                    ✗ FALSE
+                  </button>
+                </div>
+                {submitted[q.id] && (
+                  <CollapsibleExplanation
+                    isCorrect={answers[q.id] === q.isTrue}
+                    explanation={q.explanation}
+                    correctAnswer={q.isTrue ? 'TRUE (Đúng)' : 'FALSE (Sai)'}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
