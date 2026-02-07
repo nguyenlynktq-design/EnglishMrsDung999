@@ -54,7 +54,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
   // Removed listeningCorrect since listening section was removed
-  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0 });
+  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
 
   // API Key & Settings Management
@@ -84,11 +84,13 @@ function App() {
     }
   };
 
-  // Calculate total correct answers from all exercise types
-  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill;
+  // Calculate total correct answers from all 5 exercise types (50 questions total)
+  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.vocab + megaScores.tf;
   const totalQuestions = (lesson?.practice?.megaTest?.multipleChoice?.length || 0) +
     (lesson?.practice?.megaTest?.scramble?.length || 0) +
-    (lesson?.practice?.megaTest?.fillBlank?.length || 0);
+    (lesson?.practice?.megaTest?.fillBlank?.length || 0) +
+    (lesson?.practice?.megaTest?.vocabTranslation?.length || 0) +
+    (lesson?.practice?.megaTest?.trueFalse?.length || 0);
 
   const handleGenerate = async () => {
     // Check API key first
@@ -288,7 +290,7 @@ function App() {
                         setLessonText('');
                         setSelectedFiles([]);
                         setStudentName('');
-                        setMegaScores({ mc: 0, scramble: 0, fill: 0 });
+                        setMegaScores({ mc: 0, scramble: 0, fill: 0, vocab: 0, tf: 0 });
                         setShowCertificate(false);
                         setError(null);
                       }}
