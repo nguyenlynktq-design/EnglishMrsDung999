@@ -194,19 +194,13 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
           </div>
         )}
 
-        {/* Fill-in-the-Blank Section - TAP TO FILL */}
+        {/* Fill-in-the-Blank Section - TEXT INPUT */}
         {activeZone === 'fill' && (
           <div className="space-y-8 animate-fade-in max-w-4xl mx-auto">
             {(megaData.fillBlank || []).map((q, idx) => {
-              const result = answers[q.id];
               const isSubmitted = submitted[q.id];
-
-              // Parse the question to extract word bank
-              // The correctAnswer may be comma-separated for multiple blanks
-              const correctAnswers = String(q.correctAnswer || "").split(',').map(s => s.trim());
-
-              // Create word bank with correct answers (in production, add distractors)
-              const wordBank = [...correctAnswers];
+              const userInput = answers[q.id]?.userAnswer || '';
+              const isCorrect = answers[q.id]?.isCorrect;
 
               return (
                 <div key={q.id} className="bg-white p-4 md:p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100">
@@ -218,27 +212,48 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, onScores
                     </div>
                   </div>
 
-                  <WordBankFill
-                    questionId={q.id}
-                    wordBank={wordBank}
-                    correctTokens={correctAnswers}
-                    mode="fill_blanks"
-                    blankCount={correctAnswers.length}
-                    disabled={isSubmitted}
-                    showResult={isSubmitted}
-                    sessionSeed={SESSION_SEED}
-                    onComplete={(res) => {
-                      handleAnswer(q.id, res);
-                      checkFinal(q.id, res.isCorrect);
-                    }}
-                  />
+                  {/* Text Input Field */}
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={answers[q.id]?.userAnswer || ''}
+                      onChange={(e) => {
+                        if (!isSubmitted) {
+                          handleAnswer(q.id, { userAnswer: e.target.value, isCorrect: false });
+                        }
+                      }}
+                      disabled={isSubmitted}
+                      placeholder="Nhập đáp án của bạn..."
+                      className={`w-full p-4 text-lg font-bold rounded-xl border-2 transition-all outline-none ${isSubmitted
+                          ? isCorrect
+                            ? 'bg-green-50 border-green-400 text-green-700'
+                            : 'bg-red-50 border-red-400 text-red-700'
+                          : 'bg-white border-slate-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100'
+                        }`}
+                    />
+
+                    {!isSubmitted && (
+                      <button
+                        onClick={() => {
+                          const userAnswer = (answers[q.id]?.userAnswer || '').trim();
+                          const correct = normalizeStrict(userAnswer) === normalizeStrict(q.correctAnswer);
+                          handleAnswer(q.id, { userAnswer, isCorrect: correct });
+                          checkFinal(q.id, correct);
+                        }}
+                        disabled={!answers[q.id]?.userAnswer?.trim()}
+                        className="w-full py-3 rounded-xl font-bold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-md"
+                      >
+                        ✅ Kiểm tra
+                      </button>
+                    )}
+                  </div>
 
                   {isSubmitted && (
                     <CollapsibleExplanation
-                      isCorrect={result?.isCorrect}
+                      isCorrect={isCorrect}
                       explanation={q.explanation || ''}
                       correctAnswer={q.correctAnswer}
-                      userAnswer={result?.userAnswer}
+                      userAnswer={userInput}
                     />
                   )}
                 </div>
