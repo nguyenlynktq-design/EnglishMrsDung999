@@ -75,12 +75,12 @@ export const LessonCertificate: React.FC<LessonCertificateProps> = ({
           ref={certRef}
           className="w-[900px] h-[640px] bg-white rounded-lg shadow-2xl shrink-0 origin-center scale-[0.35] sm:scale-[0.5] md:scale-[0.7] lg:scale-[0.85] xl:scale-100 overflow-hidden"
         >
-          {/* Golden Border Frame - Adjusted for better balance */}
-          <div className="absolute inset-4 border-4 border-brand-300 rounded-lg"></div>
-          <div className="absolute inset-6 border-2 border-brand-200 rounded-lg"></div>
+          {/* Border Frame - Cân đối, bao quanh khổ giấy */}
+          <div className="absolute inset-3 border-[3px] border-brand-400 rounded-lg pointer-events-none"></div>
+          <div className="absolute inset-5 border-[2px] border-brand-300 rounded-lg pointer-events-none"></div>
 
-          {/* Content Container - More padding to keep text inside frame */}
-          <div className="relative h-full flex flex-col items-center justify-between px-16 py-12">
+          {/* Content Container - Padding bên trong khung viền */}
+          <div className="relative h-full flex flex-col items-center justify-between px-12 py-10" style={{ margin: '24px' }}>
 
             {/* Header */}
             <div className="text-center">
