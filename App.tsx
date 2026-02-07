@@ -54,7 +54,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [studentName, setStudentName] = useState('');
   // Removed listeningCorrect since listening section was removed
-  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0, vocab: 0, trueFalse: 0 });
+  const [megaScores, setMegaScores] = useState({ mc: 0, scramble: 0, fill: 0 });
   const [showCertificate, setShowCertificate] = useState(false);
 
   // API Key & Settings Management
@@ -84,8 +84,11 @@ function App() {
     }
   };
 
-  // Calculate the total number of correct answers (MegaTest only - 50 questions total: 5 types × 10 each)
-  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill + megaScores.vocab + megaScores.trueFalse;
+  // Calculate total correct answers from all exercise types
+  const totalCorrectCount = megaScores.mc + megaScores.scramble + megaScores.fill;
+  const totalQuestions = (lesson?.practice?.megaTest?.multipleChoice?.length || 0) +
+    (lesson?.practice?.megaTest?.scramble?.length || 0) +
+    (lesson?.practice?.megaTest?.fillBlank?.length || 0);
 
   const handleGenerate = async () => {
     // Check API key first
@@ -131,8 +134,16 @@ function App() {
     }
   };
 
+  // Calculate score: 10 points total, distributed across all questions
   function calculateTotalScore() {
-    return Math.round((totalCorrectCount / 50) * 10 * 10) / 10;
+    const total = totalQuestions || 1; // Prevent division by zero
+    const raw = (totalCorrectCount / total) * 10;
+    return Math.round(raw * 10) / 10;
+  }
+
+  // Format score with decimal comma (Vietnamese style)
+  function formatScore(score: number): string {
+    return score.toFixed(1).replace('.', ',');
   }
 
   const totalScore = calculateTotalScore();
@@ -277,7 +288,7 @@ function App() {
                         setLessonText('');
                         setSelectedFiles([]);
                         setStudentName('');
-                        setMegaScores({ mc: 0, scramble: 0, fill: 0, vocab: 0, trueFalse: 0 });
+                        setMegaScores({ mc: 0, scramble: 0, fill: 0 });
                         setShowCertificate(false);
                         setError(null);
                       }}
@@ -328,11 +339,11 @@ function App() {
                   <MrsDungLogo className="w-16 h-16 sm:w-20 sm:h-20 drop-shadow-lg" color="#15803d" />
                   <div className="flex flex-col items-center gap-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-5xl sm:text-6xl font-bold text-brand-600 leading-none">{totalScore}</span>
+                      <span className="text-5xl sm:text-6xl font-bold text-brand-600 leading-none">{formatScore(totalScore)}</span>
                       <span className="text-xl sm:text-2xl font-bold text-slate-300">/10</span>
                     </div>
                     <div className="text-sm sm:text-base font-semibold text-brand-500 bg-brand-50 px-4 py-1 rounded-full">
-                      Số câu đúng: <span className="text-brand-700 font-bold">{totalCorrectCount}/50</span>
+                      Số câu đúng: <span className="text-brand-700 font-bold">{totalCorrectCount}/{totalQuestions}</span>
                     </div>
                     <div className={`px-6 py-2 sm:px-8 sm:py-3 rounded-full font-bold text-base sm:text-xl shadow-lg ${totalScore >= 5 ? 'bg-brand-500 text-white' : 'bg-orange-500 text-white'}`}>
                       {evaluation.emoji} {evaluation.text}
