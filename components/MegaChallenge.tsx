@@ -284,7 +284,23 @@ export const MegaChallenge: React.FC<MegaChallengeProps> = ({ megaData, listenin
               const correctTokens = parseIntoTokens(q.correctSentence);
 
               // Use provided scrambled array as word bank
-              const wordBank = q.scrambled || [];
+              let wordBank = q.scrambled || [];
+
+              // Validation: ensure word bank matches expected token count
+              // If mismatch detected, use correct tokens as fallback
+              const expectedTokenCount = correctTokens.length;
+              const wordBankTokenCount = wordBank.length;
+
+              if (wordBankTokenCount !== expectedTokenCount) {
+                console.warn(`⚠️ Word bank mismatch for Q${idx + 1}:`, {
+                  expected: expectedTokenCount,
+                  actual: wordBankTokenCount,
+                  correctSentence: q.correctSentence,
+                  wordBank: wordBank
+                });
+                // Fallback: use parsed tokens from correct sentence
+                wordBank = [...correctTokens];
+              }
 
               return (
                 <div key={q.id} className="bg-white p-4 md:p-8 rounded-[2rem] shadow-lg border-b-4 border-slate-100">

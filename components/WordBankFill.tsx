@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { shuffleWithRecheck, generateSeed, joinTokensWithSpacing, compareTokenArrays } from '../utils/shuffleUtils';
+import { shuffleWithRecheck, generateSeed, joinTokensWithSpacing, compareTokenArrays, normalizeForComparison } from '../utils/shuffleUtils';
 
 export interface WordBankFillProps {
     questionId: string;
@@ -118,13 +118,36 @@ export const WordBankFill: React.FC<WordBankFillProps> = ({
     const handleSubmit = useCallback(() => {
         if (!isComplete || disabled) return;
 
+        // Token-based comparison
+        const tokenComparisonResult = comparison.isCorrect;
+
+        // Fallback: normalized string comparison (to catch edge cases)
+        const normalizedUserAnswer = normalizeForComparison(userAnswer, false);
+        const normalizedCorrectAnswer = normalizeForComparison(correctAnswer, false);
+        const stringComparisonResult = normalizedUserAnswer === normalizedCorrectAnswer;
+
+        // Accept as correct if EITHER comparison passes
+        const finalIsCorrect = tokenComparisonResult || stringComparisonResult;
+
+        // Debug logging (can be removed in production)
+        if (tokenComparisonResult !== stringComparisonResult) {
+            console.warn('⚠️ Token vs String comparison mismatch:', {
+                tokenResult: tokenComparisonResult,
+                stringResult: stringComparisonResult,
+                userTokens,
+                correctTokens,
+                userAnswer,
+                correctAnswer
+            });
+        }
+
         onComplete?.({
-            isCorrect: comparison.isCorrect,
+            isCorrect: finalIsCorrect,
             userTokens,
             userAnswer,
             correctAnswer
         });
-    }, [isComplete, disabled, comparison.isCorrect, userTokens, userAnswer, correctAnswer, onComplete]);
+    }, [isComplete, disabled, comparison.isCorrect, userTokens, userAnswer, correctAnswer, correctTokens, onComplete]);
 
     return (
         <div className="word-bank-fill space-y-4">
@@ -136,10 +159,10 @@ export const WordBankFill: React.FC<WordBankFillProps> = ({
             {/* Answer Area - Always visible, pinned at top */}
             <div
                 className={`answer-area min-h-[60px] p-4 rounded-2xl border-2 transition-all ${showResult
-                        ? comparison.isCorrect
-                            ? 'bg-green-50 border-green-400'
-                            : 'bg-red-50 border-red-400'
-                        : 'bg-white border-slate-200 shadow-inner'
+                    ? comparison.isCorrect
+                        ? 'bg-green-50 border-green-400'
+                        : 'bg-red-50 border-red-400'
+                    : 'bg-white border-slate-200 shadow-inner'
                     }`}
                 style={{ position: 'sticky', top: '0', zIndex: 10 }}
             >
@@ -157,10 +180,10 @@ export const WordBankFill: React.FC<WordBankFillProps> = ({
                                     onClick={() => handleAnswerWordTap(idx)}
                                     disabled={disabled || showResult}
                                     className={`px-3 py-2 rounded-xl font-bold text-base transition-all ${showResult
-                                            ? isWrong
-                                                ? 'bg-red-200 text-red-800 border-2 border-red-400'
-                                                : 'bg-green-200 text-green-800 border-2 border-green-400'
-                                            : 'bg-brand-100 text-brand-700 border-2 border-brand-300 hover:bg-brand-200 active:scale-95'
+                                        ? isWrong
+                                            ? 'bg-red-200 text-red-800 border-2 border-red-400'
+                                            : 'bg-green-200 text-green-800 border-2 border-green-400'
+                                        : 'bg-brand-100 text-brand-700 border-2 border-brand-300 hover:bg-brand-200 active:scale-95'
                                         }`}
                                 >
                                     {item.word}
@@ -190,8 +213,8 @@ export const WordBankFill: React.FC<WordBankFillProps> = ({
                                 onClick={() => handleBankWordTap(word, idx)}
                                 disabled={disabled || showResult || isUsed}
                                 className={`px-4 py-3 rounded-xl font-bold text-base transition-all ${isUsed
-                                        ? 'bg-slate-300 text-slate-400 cursor-not-allowed opacity-50'
-                                        : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:scale-95 shadow-sm'
+                                    ? 'bg-slate-300 text-slate-400 cursor-not-allowed opacity-50'
+                                    : 'bg-white text-slate-700 border-2 border-slate-200 hover:border-brand-400 hover:bg-brand-50 active:scale-95 shadow-sm'
                                     }`}
                             >
                                 {word}

@@ -106,22 +106,33 @@ export const compareTokenArrays = (
     caseSensitive = false
 ): { isCorrect: boolean; differences: number[] } => {
     const differences: number[] = [];
-    const maxLen = Math.max(userTokens.length, correctTokens.length);
+
+    // Normalize tokens: trim whitespace and optionally lowercase
+    const normalizeToken = (token: string): string => {
+        let normalized = token.trim();
+        if (!caseSensitive) {
+            normalized = normalized.toLowerCase();
+        }
+        return normalized;
+    };
+
+    // Filter out empty tokens after normalization
+    const userNormalized = userTokens.map(normalizeToken).filter(t => t.length > 0);
+    const correctNormalized = correctTokens.map(normalizeToken).filter(t => t.length > 0);
+
+    const maxLen = Math.max(userNormalized.length, correctNormalized.length);
 
     for (let i = 0; i < maxLen; i++) {
-        const userToken = userTokens[i] || '';
-        const correctToken = correctTokens[i] || '';
+        const userToken = userNormalized[i] || '';
+        const correctToken = correctNormalized[i] || '';
 
-        const userNorm = caseSensitive ? userToken : userToken.toLowerCase();
-        const correctNorm = caseSensitive ? correctToken : correctToken.toLowerCase();
-
-        if (userNorm !== correctNorm) {
+        if (userToken !== correctToken) {
             differences.push(i);
         }
     }
 
     return {
-        isCorrect: differences.length === 0 && userTokens.length === correctTokens.length,
+        isCorrect: differences.length === 0 && userNormalized.length === correctNormalized.length,
         differences
     };
 };
