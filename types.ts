@@ -210,3 +210,33 @@ export interface AppState {
   loadingStep: LoadingStep;
   error: string | null;
 }
+
+// ─── Learning History ───────────────────────────────────────
+export interface LessonRecord {
+  id: string;
+  date: string;           // ISO string
+  topic: string;
+  score: number;           // 0-10
+  totalCorrect: number;
+  totalQuestions: number;
+  skillScores: {
+    mc: number;
+    scramble: number;
+    fill: number;
+    vocab: number;
+    tf: number;
+    listen: number;
+  };
+  studentName: string;
+}
+
+export interface WeeklyReport {
+  weekLabel: string;       // e.g. "10/02 - 16/02"
+  weekStart: string;       // ISO
+  weekEnd: string;         // ISO
+  lessonCount: number;
+  averageScore: number;
+  topics: string[];
+  progress: 'up' | 'down' | 'same' | 'none'; // compared to previous week
+  prevAverage: number | null;
+}
